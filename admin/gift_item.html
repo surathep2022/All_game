@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SB Admin 2 - Bootstrap 5 Dashboard</title>
+
+    <!-- Bootstrap 5.3 CSS CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- FontAwesome 6 CDN -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Google Fonts - Nunito -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="admin.css" />
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script src="admin.js"></script>
+
+    <script>
+      $(function () {
+        // ดึงไฟล์ sidebar และ topbar มาแสดง
+        $("#includedSidebar").load("sidebar.html");
+
+        // 🎯 เติมเครื่องหมาย # หน้า includedTopbar ให้ถูกต้อง
+        $("#includedTopbar").load("topbar.html");
+
+        $(document).on(
+          "click",
+          "#sidebarToggle, #sidebarToggleTop",
+          function () {
+            const sidebar = document.getElementById("sidebar");
+            const toggleIcon = document.getElementById("toggleIcon");
+
+            if (!sidebar) {
+              return;
+            }
+
+            sidebar.classList.toggle("toggled");
+            if (toggleIcon) {
+              toggleIcon.classList.toggle("fa-chevron-left");
+              toggleIcon.classList.toggle("fa-chevron-right");
+            }
+          },
+        );
+      });
+    </script>
+
+    <script>
+      // ฟังก์ชันสุ่มรหัส 6 หลัก
+      function generateProductCode() {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let result = "";
+        for (let i = 0; i < 6; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById("productCode").value = result;
+      }
+
+      // แสดงตัวอย่างรูป 100x100 px
+      function previewImage(event) {
+        const file = event.target.files[0];
+        const preview = document.getElementById("imagePreview");
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            preview.src = e.target.result;
+            preview.style.display = "block";
+          };
+          reader.readAsDataURL(file);
+        } else {
+          preview.src = "#";
+          preview.style.display = "none";
+        }
+      }
+
+      // บันทึกข้อมูลเมื่อ Submit Form
+      document.addEventListener("DOMContentLoaded", function () {
+        document
+          .getElementById("addProductForm")
+          .addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const btnSave = document.getElementById("btnSave");
+            btnSave.disabled = true;
+            btnSave.innerText = "กำลังบันทึก...";
+
+            try {
+              const response = await fetch("/api/add-prize", {
+                method: "POST",
+                body: formData, // ส่ง FormData ที่รวมทั้งไฟล์และข้อมูล Text
+              });
+
+              const result = await response.json();
+
+              if (result.success) {
+                  // แสดงแจ้งเตือนสำเร็จ (เลือกใช้ SweetAlert2 หรือ alert ธรรมดาก็ได้ครับ)
+                  alert("บันทึกข้อมูลลง MySQL เรียบร้อยแล้ว!");
+
+                  // ซ่อน Modal
+                  const modalElement = document.getElementById("addProductModal");
+                  const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                  if (modalInstance) modalInstance.hide();
+
+                  // ล้างฟอร์ม
+                  this.reset();
+                  const preview = document.getElementById("imagePreview");
+                  if (preview) preview.style.display = "none";
+
+                  // รีเฟรชหน้าเว็บใหม่ทันทีเพื่อให้แสดงข้อมูลล่าสุด
+                  location.reload();
+              } else {
+                alert("เกิดข้อผิดพลาด: " + result.message);
+              }
+            } catch (error) {
+              console.error("Error:", error);
+              alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server");
+            } finally {
+              btnSave.disabled = false;
+              btnSave.innerText = "บันทึกข้อมูล";
+            }
+          });
+      });
+
+      document.addEventListener("DOMContentLoaded", function() {
+    loadActivePrizes();
+});
+
+async function loadActivePrizes() {
+    try {
+        const response = await fetch('/api/prizes');
+        const result = await response.json();
+        
+        if (result.success) {
+            const container = document.getElementById('prizeCardContainer');
+            container.innerHTML = ''; // เคลียร์เนื้อหาเดิม (ถ้ามี)
+
+            if (result.data.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <p class="text-muted" style="font-family: 'Kanit', sans-serif;">ยังไม่มีรายการของรางวัลที่เปิดใช้งาน</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // วนลูปสร้าง Card ตามจำนวนข้อมูลที่ดึงมาจาก MySQL
+            result.data.forEach(item => {
+                // เช็คสถานะเพื่อเปิดสวิตช์ทิ้งไว้ (เพราะดึงมาเฉพาะ on อยู่แล้ว)
+                const isChecked = item.status === 'on' ? 'checked' : '';
+
+                const col = document.createElement('div');
+                col.className = 'col-6 col-md-4 col-lg-2'; // จัด 6 คอลัมน์ในจอคอม
+                
+                col.innerHTML = `
+                    <div class="card shadow-sm position-relative h-100 border-0 rounded-4 overflow-hidden bg-white hover-shadow transition-all">
+                        
+                        <!-- 🔘 Switch เปิด-ปิด -->
+                        <div class="position-absolute top-0 end-0 p-2" style="z-index: 10;">
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" ${isChecked} 
+                                       style="cursor: pointer; transform: scale(1.1);"
+                                       onchange="updatePrizeStatus(${item.id}, this)">
+                            </div>
+                        </div>
+
+                        <!-- เนื้อหาข้างใน Card -->
+                        <div class="card-body text-center pt-4 px-2 pb-2 d-flex flex-column align-items-center">
+                            
+                            <!-- รูปภาพสินค้า -->
+                            <div class="position-relative mb-2">
+                                <img src="${item.image_path}" alt="${item.product_name}" 
+                                     class="rounded-3 shadow-sm" 
+                                     style="width: 100px; height: 100px; object-fit: cover; border: 1px solid #f0f0f0;">
+                            </div>
+                            
+                          <!-- รหัสสินค้า -->
+                          <div class="mb-1">
+                              <span class="badge bg-light text-secondary px-2 py-1" style="font-size: 14px; letter-spacing: 0.5px;">
+                                  รหัสของรางวัล : ${item.product_code}
+                              </span>
+                          </div>
+
+                          <!-- ชื่อสินค้า (ปรับให้มีพื้นหลังเขียวอ่อน ตัวหนังสือสีเขียวเข้ม สะอาดตา) -->
+                          <div class="w-100 text-truncate">
+                              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 w-90 text-truncate" 
+                                    style="font-family: 'Google Sans', sans-serif; font-size: 14px; font-weight: 500;" 
+                                    title="${item.product_name}">
+                                  ชื่อของรางวัล : ${item.product_name}
+                              </span>
+                          </div>
+
+                        </div>
+
+                        <!-- ส่วนท้ายการ์ด (ปุ่มลบ) -->
+                        <div class="card-footer bg-transparent border-0 text-center pb-3 pt-0 px-3">
+                            <button class="btn btn-outline-danger w-100 py-1" style="font-size: 11px; border-radius: 8px; font-weight: 500;" onclick="deletePrize(${item.id})">
+                                <i class="bi bi-trash me-1"></i> ลบ
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(col);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading prizes:', error);
+    }
+}
+
+// ฟังก์ชันสำหรับส่งค่าอัปเดตสถานะเมื่อกด Switch
+async function updatePrizeStatus(id, checkbox) {
+    const newStatus = checkbox.checked ? 'on' : 'off';
+
+    try {
+        const response = await fetch('/api/prizes/status', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ id: id, status: newStatus })
+        });
+
+        const result = await response.json();
+
+
+       if (!result.success) {
+    alert('เกิดข้อผิดพลาด: ' + result.message);
+    // ถ้าอัปเดตไม่ผ่าน ให้ดีดสวิตช์กลับตำแหน่งเดิม
+    checkbox.checked = !checkbox.checked;
+} else {
+    // แสดงกล่องแจ้งเตือนแบบ HTML สวยๆ ตรงกลางจอ
+    Swal.fire({
+        html: `
+            <div class="alert theme-success text-success bg-success-subtle border border-success-subtle rounded-3 p-3 mb-0 shadow-sm" role="alert" style="font-family: 'Kanit', sans-serif;">
+                <div class="d-flex align-items-center justify-content-center">
+                    <i class="bi bi-check-circle-fill fs-4 me-2"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">อัปเดตสถานะสำเร็จ!</h6>
+                        <p class="mb-0 small">เปลี่ยนสถานะของรางวัลเรียบร้อยแล้ว</p>
+                    </div>
+                </div>
+            </div>
+        `,
+        showConfirmButton: false,
+        timer: 1500, // ปิดเองอัตโนมัติใน 1.2 วินาที
+        background: 'transparent',
+        customClass: {
+            popup: 'border-0 bg-transparent shadow-none'
+        }
+    });
+}
+    } catch (error) {
+        console.error('Error:', error);
+        alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+        // ดีดสวิตช์กลับตำแหน่งเดิมกรณีเกิด Error
+        checkbox.checked = !checkbox.checked;
+    }
+}
+
+// ฟังก์ชันสำหรับลบข้อมูลของรางวัล
+async function deletePrize(id) {
+    // 1. แสดงกล่องข้อความถามยืนยันก่อนลบ
+    const confirmResult = await Swal.fire({
+        title: 'คุณต้องการลบข้อมูลนี้ใช่หรือไม่?',
+        text: "เมื่อลบแล้วจะไม่สามารถกู้คืนข้อมูลกลับมาได้!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545', // สีแดงสำหรับปุ่มยืนยันการลบ
+        cancelButtonColor: '#6c757d',  // สีเทาสำหรับปุ่มยกเลิก
+        confirmButtonText: 'ใช่, ลบเลย!',
+        cancelButtonText: 'ยกเลิก',
+        reverseButtons: true
+    });
+
+    // 2. ถ้าผู้ใช้กดปุ่ม "ใช่, ลบเลย!"
+    if (confirmResult.isConfirmed) {
+        try {
+            const response = await fetch(`/api/prizes/${id}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // แสดงแจ้งเตือนลบสำเร็จแบบ Toast มุมขวาบน (หรือใช้แบบป๊อปอัปกลางจอก็ได้ครับ)
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: 'ลบข้อมูลเรียบร้อยแล้ว'
+                });
+
+                // โหลดข้อมูลใหม่เพื่ออัปเดตการแสดงผลการ์ดทันที
+                loadActivePrizes();
+            } else {
+                Swal.fire('ผิดพลาด!', result.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('ผิดพลาด!', 'ไม่สามารถเชื่อมต่อกับ Server ได้', 'error');
+        }
+    }
+}
+    </script>
+  </head>
+  <body>
+    <div id="wrapper">
+      <!-- Sidebar -->
+      <div id="includedSidebar"></div>
+      <!-- End of Sidebar -->
+
+      <!-- Content Wrapper -->
+      <div id="content-wrapper" class="d-flex flex-column">
+        <!-- Main Content -->
+        <div id="content">
+          <!-- Topbar -->
+          <div id="includedTopbar"></div>
+          <!-- End of Topbar -->
+
+          <!-- Begin Page Content -->
+          <div class="container-fluid px-4">
+            <!-- การ์ดสำหรับกดคลิกเพื่อเปิด Modal -->
+            <div
+              class="card shadow-sm"
+              style="
+                max-width: 320px;
+                cursor: pointer;
+                transition: transform 0.2s;
+              "
+              data-bs-toggle="modal"
+              data-bs-target="#addProductModal"
+              onclick="generateProductCode()"
+            >
+              <div class="card-body text-center py-4">
+                <i
+                  class="bi bi-database-add mb-2"
+                  style="font-size: 48px; color: #6f42c1"
+                ></i>
+                <h5
+                  class="card-title mb-0 fw-bold"
+                  style="
+                    font-family: &quot;Google Sans&quot;, sans-serif;
+                    color: #333;
+                  "
+                >
+                  เพิ่มของรางวัล
+                </h5>
+              </div>
+            </div>
+          </div>
+
+          <div class="container-fluid px-4">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                
+            </div>
+
+            <!-- แถวสำหรับแสดงการ์ด 6 รายการต่อแถวในหน้าจอใหญ่ -->
+            <div class="row g-3" id="prizeCardContainer">
+              <!-- ตัวอย่างการ์ดสินค้า -->
+              <div class="col-6 col-md-4 col-lg-2">
+                <div
+                  class="card shadow-sm position-relative h-100 border-0 rounded-4 overflow-hidden bg-white hover-shadow transition-all"
+                >
+                  <!-- 🔘 Switch เปิด-ปิด (ปรับขนาดพอดี ไม่ใหญ่จนบังรูปหรือล้นขอบ) -->
+                  <div
+                    class="position-absolute top-0 end-0 p-2"
+                    style="z-index: 10"
+                  >
+                    <div class="form-check form-switch m-0">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        checked
+                        style="cursor: pointer; transform: scale(1.1)"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- เนื้อหาข้างใน Card -->
+                  <div
+                    class="card-body text-center pt-4 px-2 pb-2 d-flex flex-column align-items-center"
+                  >
+                    <!-- กรอบรูปภาพทรงสี่เหลี่ยมจัตุรัสพอดีกับการ์ดขนาดเล็ก (แนะนำขนาด 100-120px) -->
+                    <div class="position-relative mb-2">
+                      <img
+                        src="https://via.placeholder.com/100"
+                        alt="Product"
+                        class="rounded-3 shadow-sm"
+                        style="
+                          width: 100px;
+                          height: 100px;
+                          object-fit: cover;
+                          border: 1px solid #f0f0f0;
+                        "
+                      />
+                    </div>
+
+                    <!-- รหัสสินค้า -->
+                    <span
+                      class="badge bg-light text-muted mb-1 px-2 py-1"
+                      style="font-size: 10px; letter-spacing: 0.5px"
+                    >
+                      #A9F21B
+                    </span>
+
+                    <!-- ชื่อสินค้า -->
+                    <h6
+                      class="card-title fw-bold text-dark mb-0 text-truncate w-100"
+                      style="
+                        font-family: &quot;Google Sans&quot;, sans-serif;
+                        font-size: 13px;
+                      "
+                      title="ทองคำแท่ง 1 บาท"
+                    >
+                      ทองคำแท่ง 1 บาท
+                    </h6>
+                  </div>
+
+                  <!-- ส่วนท้ายการ์ด (ปุ่มลบดีไซน์โค้งมน) -->
+                  <div
+                    class="card-footer bg-transparent border-0 text-center pb-3 pt-0 px-3"
+                  >
+                    <button
+                      class="btn btn-outline-danger w-100 py-1"
+                      style="
+                        font-size: 11px;
+                        border-radius: 8px;
+                        font-weight: 500;
+                      "
+                      onclick="deletePrize()"
+                    >
+                      <i class="bi bi-trash me-1"></i> ลบ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal สำหรับกรอกข้อมูลสินค้า -->
+          <div
+            class="modal fade"
+            id="addProductModal"
+            tabindex="-1"
+            aria-labelledby="addProductModalLabel"
+            aria-hidden="true"
+          >
+            <dv class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                  <h5
+                    class="modal-title fw-bold"
+                    id="addProductModalLabel"
+                    style="font-family: &quot;Google Sans&quot;, sans-serif"
+                  >
+                    <i class="bi bi-gift-fill me-2"></i> เพิ่มของรางวัลใหม่
+                  </h5>
+                  <button
+                    type="button"
+                    class="btn-close btn-close-white"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                  ></button>
+                </div>
+
+                <form id="addProductForm">
+                  <div
+                    class="modal-body"
+                    style="font-family: &quot;Kanit&quot;, sans-serif"
+                  >
+                    <!-- รหัสสินค้า -->
+                    <div class="mb-3">
+                      <label for="productCode" class="form-label fw-bold"
+                        >รหัสสินค้า (Auto)</label
+                      >
+                      <div class="input-group">
+                        <input
+                          type="text"
+                          class="form-control text-center fw-bold text-danger"
+                          id="productCode"
+                          name="productCode"
+                          readonly
+                          style="letter-spacing: 2px; font-size: 18px"
+                        />
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          onclick="generateProductCode()"
+                          title="สุ่มใหม่"
+                        >
+                          <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- ชื่อสินค้า -->
+                    <div class="mb-3">
+                      <label for="productName" class="form-label fw-bold"
+                        >ชื่อสินค้า / ของรางวัล</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="productName"
+                        name="productName"
+                        placeholder="กรอกชื่อของรางวัล เช่น ทองคำ, iPhone"
+                        required
+                      />
+                    </div>
+
+                    <!-- รูปภาพสินค้า -->
+                    <div class="mb-3">
+                      <label for="productImage" class="form-label fw-bold"
+                        >อัปโหลดรูปภาพ</label
+                      >
+                      <input
+                        type="file"
+                        class="form-control"
+                        id="productImage"
+                        name="productImage"
+                        accept="image/*"
+                        onchange="previewImage(event)"
+                        required
+                      />
+
+                      <!-- ตัวอย่างรูปภาพขนาด 100x100 px -->
+                      <div class="mt-2 text-center">
+                        <img
+                          id="imagePreview"
+                          src="#"
+                          alt="Preview"
+                          style="
+                            display: none;
+                            width: 100px;
+                            height: 100px;
+                            object-fit: cover;
+                            border-radius: 8px;
+                            border: 1px solid #ddd;
+                            margin: 0 auto;
+                          "
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      data-bs-dismiss="modal"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      type="submit"
+                      class="btn btn-primary px-4"
+                      id="btnSave"
+                    >
+                      บันทึกข้อมูล
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </dv>
+          </div>
+          <!-- /.container-fluid -->
+        </div>
+        <!-- End of Main Content -->
+
+        <!-- Footer -->
+        <footer class="sticky-footer bg-white py-3 border-top mt-auto">
+          <div class="container my-auto">
+            <div class="copyright text-center my-auto small text-muted">
+              <span>Copyright &copy; Your Website 2026</span>
+            </div>
+          </div>
+        </footer>
+        <!-- End of Footer -->
+      </div>
+      <!-- End of Content Wrapper -->
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Logout Modal-->
+    <div
+      class="modal fade"
+      id="logoutModal"
+      tabindex="-1"
+      aria-labelledby="logoutModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="logoutModalLabel">Ready to Leave?</h5>
+            <button
+              class="btn-close"
+              type="button"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            Select "Logout" below if you are ready to end your current session.
+          </div>
+          <div class="modal-footer">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <a class="btn btn-primary" href="#">Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JavaScript Bundle CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

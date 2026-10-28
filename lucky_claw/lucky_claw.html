@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lucky Claw</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet" />
+    <link
+    href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+    rel="stylesheet"
+    >
+
+    <link rel="stylesheet" href="/lucky_claw/style.css" />
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  </head>
+  <body>
+    <div id="viewport">
+      <div id="stage">
+        <div id="room"><div id="floor"></div></div>
+
+        <!-- HUD -->
+        <div id="hud-left" style="display: none">
+          <div class="stat-pill star">
+            <div class="icon">⭐</div>
+            <div class="val" id="starVal">20</div>
+          </div>
+          <div class="stat-pill teddy">
+            <div class="icon">🧸</div>
+            <div class="val" id="teddyVal">0</div>
+          </div>
+          <div class="stat-pill gift">
+            <div class="icon">🎁</div>
+            <div class="val" id="giftVal">0</div>
+          </div>
+        </div>
+        <div id="hud-right">
+          <div class="icon-btn" id="btnSound">🔊</div>
+          <div class="icon-btn">📷</div>
+          <div class="icon-btn">❓</div>
+          <div class="icon-btn">🏠</div>
+        </div>
+        <div id="timer-wrap">
+          <div style="font-family:'Kanit', sans-serif; 
+               font-weight: 600; font-style: normal;"
+               id="timer-badge">15</div>
+          <div id="timer-label">TIME</div>
+        </div>
+        <div id="current-player-pill">
+          <!-- <span class="player-label">ผู้เล่น</span> -->
+          <strong id="player-name-display">รอคิว</strong>
+        </div>
+
+        <!-- Cabinet -->
+        <div id="cabinet">
+          <div class="lightcol left" id="lightsL"></div>
+          <div class="lightcol right" id="lightsR"></div>
+          <div id="glass">
+            <!-- <div id="logo">★ LUCKY<br />★ CLAW</div> -->
+            <div id="chute">
+              <div id="chuteHole"></div>
+            </div>
+            <div id="prizeField"></div>
+
+            <div id="rail"><div id="railGlow"></div></div>
+            <div id="motor">
+              <div id="motorBox"><span id="motorStar">★</span></div>
+              <div id="rod">
+                <div id="claw">
+                  <div class="finger l"></div>
+                  <div class="finger m"></div>
+                  <div class="finger r"></div>
+                  <div id="heldPrize"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      
+        <div id="hint" style="display: none">
+          ใช้ปุ่มทิศทางเลื่อนตัวคีบ แล้วกด SPACE เพื่อคีบตุ๊กตา
+        </div>
+
+        <!-- Control panel -->
+        <div id="panel"  style="display: none">
+          <div id="dpad">
+            <div class="dbtn up" data-dir="up">▲</div>
+            <div class="dbtn down" data-dir="down">▼</div>
+            <div class="dbtn left" data-dir="left">◀</div>
+            <div class="dbtn right" data-dir="right">▶</div>
+            <!-- Joystick Stick & Base -->
+            <div id="joystickBase"  style="display: none">
+              <div id="joystickKnob"></div>
+            </div>
+          </div>
+          <div id="creditWrap"  style="display: none">
+            <div id="creditBox">
+              <div class="lbl">CREDIT</div>
+              <div class="num" id="creditVal">20</div>
+            </div>
+          </div>
+          <div id="spaceBtn"  style="display: none">
+            <span>SPACE</span><span class="sub">กดเพื่อคีบ</span>
+          </div>
+          <div id="startBtn" class="disabled"  style="display: none">
+            <span>START</span><span class="sub">เริ่มเกม</span>
+          </div>
+        </div>
+
+        <!-- Popups -->
+        <div id="missMsg">😢 พลาดไปนิดเดียว!</div>
+        <div id="outMsg">
+          <div>😵 เครดิตหมดแล้ว!</div>
+          <p>เติมเครดิตเพื่อเล่นต่อ</p>
+          <button id="refillBtn">เติมเครดิต +20</button>
+        </div>
+        <div id="allCaughtMsg">
+          <div>🎉 คีบได้ครบทุกตัวแล้ว!</div>
+          <p>เติมตุ๊กตาใหม่เข้าตู้เพื่อเล่นต่อ</p>
+          <button id="restockBtn">เติมตุ๊กตาใหม่</button>
+        </div>
+
+        <!-- Start lock: the first Space starts a 15-second round -->
+        <div id="startOverlay">
+          <div id="startPopup">
+            <div class="start-icon">🕹️</div>
+            <h2 style = "font-family: Google Sans;">ตู้คีบกล่องลุ้นรางวัล</h2>
+            <div id="queueDisplay" style="margin: 8px 0 12px; color: #000000; font-size: 54px;">เชิญคุณ:...</div>      
+            <img src="/lucky_claw/game.png" alt="Claw Machine" style="width: 100%; max-width: 1200px; margin: 12px 0;" />
+            <div id="startSpace">
+                     START
+              <small>เริ่มเกม</small>
+            </div>
+          </div>
+        </div>
+
+        <div id="overlay">
+          <div id="popup">
+            <div id="boxStage">
+              <div id="blueReveal"></div>
+              <div id="boxClosed" class="giftbox-big c1">
+                <div class="box-lid"></div>
+                <div class="ribbon-v"></div>
+                <div class="ribbon-h"></div>
+                <div class="bow">🎀</div>
+              </div>
+              <div class="reveal-wrap">
+                <div id="revealEmoji" class="big-emoji"></div>
+              </div>
+            </div>
+            <h2 id="popTitle">กำลังเปิดกล่อง...</h2>
+            <p id="popText"></p>
+            <button id="popupClose" style="font-family: 'Kanit', sans-serif; display: none">
+              ตกลง
+            </button>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+
+   <script>
+     const stage = document.getElementById("stage");
+     const fitStageToViewport = () => {
+       stage.style.setProperty(
+         "--stage-scale",
+         Math.min(window.innerWidth / 1080, window.innerHeight / 1920)
+       );
+     };
+     window.addEventListener("resize", fitStageToViewport);
+     fitStageToViewport();
+   </script>
+   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+   <script type="module" src="/lucky_claw/script.js"></script>
+
+  </body>
+</html>

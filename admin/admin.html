@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SB Admin 2 - Bootstrap 5 Dashboard</title>
+
+    <!-- Bootstrap 5.3 CSS CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- FontAwesome 6 CDN -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Google Fonts - Nunito -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="admin.css" />
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script src="admin.js"></script>
+
+    <script>
+      $(function () {
+        // ดึงไฟล์ sidebar และ topbar มาแสดง
+        $("#includedSidebar").load("sidebar.html");
+
+        // 🎯 เติมเครื่องหมาย # หน้า includedTopbar ให้ถูกต้อง
+        $("#includedTopbar").load("topbar.html");
+
+        $(document).on(
+          "click",
+          "#sidebarToggle, #sidebarToggleTop",
+          function () {
+            const sidebar = document.getElementById("sidebar");
+            const toggleIcon = document.getElementById("toggleIcon");
+
+            if (!sidebar) {
+              return;
+            }
+
+            sidebar.classList.toggle("toggled");
+            if (toggleIcon) {
+              toggleIcon.classList.toggle("fa-chevron-left");
+              toggleIcon.classList.toggle("fa-chevron-right");
+            }
+          },
+        );
+      });
+    </script>
+  </head>
+  <body>
+    <div id="wrapper">
+      <!-- Sidebar -->
+      <div id="includedSidebar"></div>
+      <!-- End of Sidebar -->
+
+      <!-- Content Wrapper -->
+      <div id="content-wrapper" class="d-flex flex-column">
+        <!-- Main Content -->
+        <div id="content">
+          <!-- Topbar -->
+          <div id="includedTopbar"></div>
+          <!-- End of Topbar -->
+
+          <!-- Begin Page Content -->
+          <div class="container-fluid px-4">
+            <div class="queue-control">
+              <button class="btn-add-customer" onclick="addCustomer()">
+                <i class="bi bi-person-plus-fill"></i>
+                เพิ่มชื่อลูกค้าเพื่อเริ่มเล่น
+              </button>
+              <div class="current-queue" id="current-queue-list">
+                <p
+                  style="
+                    color: #7f8c8d;
+                    font-size: 0.9rem;
+                    margin-top: 10px;
+                    font-family: &quot;Kanit&quot;;
+                  "
+                >
+                  คิวปัจจุบัน: ยังไม่มีลูกค้าในคิว
+                </p>
+              </div>
+            </div>
+            <div id="order-content">
+              <!-- แถวหัวข้อและปุ่มจัดการ (วางไว้มุมบนขวา) -->
+              <div
+                class="d-flex align-items-center justify-content-between mb-3"
+              >
+                <div>
+                  <h3
+                    class="fw-bold text-dark m-0"
+                    style="
+                      font-family: &quot;Google Sans&quot;, sans-serif;
+                      font-size: 20px;
+                    "
+                  >
+                    ลำดับการแจกของรางวัล
+                  </h3>
+                  <span
+                    class="text-muted small"
+                    style="font-family: &quot;Kanit&quot;, sans-serif"
+                    >คลิกแต่ละช่องเพื่อเลือกของรางวัลสำหรับลำดับที่ 1–100</span
+                  >
+                </div>
+
+                <!-- 🔘 ปุ่มย้ายมาอยู่มุมบนขวาตรงนี้ -->
+                <div class="d-flex gap-2">
+                  <button
+                    class="btn btn-success btn-sm px-3 shadow-sm d-flex align-items-center"
+                    onclick="savePrizeOrder()"
+                    style="font-weight: 500"
+                  >
+                    <i class="bi bi-check-circle me-1"></i> บันทึกลำดับรางวัล
+                  </button>
+                  <button
+                    class="btn btn-danger btn-sm px-3 shadow-sm d-flex align-items-center"
+                    onclick="clearAllOrders()"
+                    style="font-weight: 500"
+                  >
+                    <i class="bi bi-trash3 me-1"></i> ล้างทั้งหมด
+                  </button>
+                </div>
+              </div>
+
+              <!-- แท็บเลือกช่วง (ถ้ามีใช้งาน) -->
+              <div class="order-range-tabs" id="order-range-tabs"></div>
+
+              <!-- ตาราง Grid 10 ช่องต่อแถว -->
+              <div id="order-grid" class="order-grid"></div>
+            </div>
+          </div>
+          <!-- /.container-fluid -->
+        </div>
+        <!-- End of Main Content -->
+
+        <!-- Footer -->
+        <footer class="sticky-footer bg-white py-3 border-top mt-auto">
+          <div class="container my-auto">
+            <div class="copyright text-center my-auto small text-muted">
+              <span>Copyright &copy; Your Website 2026</span>
+            </div>
+          </div>
+        </footer>
+        <!-- End of Footer -->
+      </div>
+      <!-- End of Content Wrapper -->
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Logout Modal-->
+    <div
+      class="modal fade"
+      id="logoutModal"
+      tabindex="-1"
+      aria-labelledby="logoutModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="logoutModalLabel">Ready to Leave?</h5>
+            <button
+              class="btn-close"
+              type="button"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            Select "Logout" below if you are ready to end your current session.
+          </div>
+          <div class="modal-footer">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <a class="btn btn-primary" href="#">Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JavaScript Bundle CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SB Admin 2 - Bootstrap 5 Dashboard</title>
+
+    <!-- Bootstrap 5.3 CSS CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- FontAwesome 6 CDN -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Google Fonts - Nunito -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="admin.css" />
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script src="admin.js"></script>
+
+    <script>
+      $(function () {
+        // ดึงไฟล์ sidebar และ topbar มาแสดง
+        $("#includedSidebar").load("sidebar.html");
+
+        // 🎯 เติมเครื่องหมาย # หน้า includedTopbar ให้ถูกต้อง
+        $("#includedTopbar").load("topbar.html");
+
+        $(document).on(
+          "click",
+          "#sidebarToggle, #sidebarToggleTop",
+          function () {
+            const sidebar = document.getElementById("sidebar");
+            const toggleIcon = document.getElementById("toggleIcon");
+
+            if (!sidebar) {
+              return;
+            }
+
+            sidebar.classList.toggle("toggled");
+            if (toggleIcon) {
+              toggleIcon.classList.toggle("fa-chevron-left");
+              toggleIcon.classList.toggle("fa-chevron-right");
+            }
+          },
+        );
+      });
+    </script>
+  </head>
+  <body>
+    <div id="wrapper">
+      <!-- Sidebar -->
+      <div id="includedSidebar"></div>
+      <!-- End of Sidebar -->
+
+      <!-- Content Wrapper -->
+      <div id="content-wrapper" class="d-flex flex-column">
+        <!-- Main Content -->
+        <div id="content">
+          <!-- Topbar -->
+          <div id="includedTopbar"></div>
+          <!-- End of Topbar -->
+
+          <!-- Begin Page Content -->
+          <div class="container-fluid px-4">
+            <!-- การ์ดสำหรับกดคลิกเพื่อเปิด Modal -->
+          </div>
+
+          <div class="container-fluid px-4">
+            <div
+              class="d-flex align-items-center justify-content-between mb-4 w-100"
+            >
+              <!-- หัวข้อหน้าจอ (อยู่ฝั่งซ้าย) -->
+
+              <!-- ปุ่มเพิ่ม Sponsors (ถูกดันชิดมุมขวาด้วย ms-auto หรือ justify-content-between) -->
+            </div>
+
+            <div
+              class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"
+            >
+              <!-- ฝั่งซ้าย: หัวข้อและสถานะ -->
+              <div>
+                <h3 class="fw-bold text-gay mb-1" style="font-size: 24px">
+                  <i class="bi bi-joystick text-success me-2"></i>
+                  เกมที่ต้องการแสดงหน้างาน
+                </h3>
+              </div>
+            </div>
+
+            <!-- แถวสำหรับแสดงการ์ด (กำหนด id และให้แสดง 6 รายการต่อแถวในจอใหญ่ด้วย col-lg-2) -->
+            <div class="row g-3" id="sponsorCardContainer">
+              <!-- 📌 Template การ์ด (ปรับให้เนื้อหาข้างในเรียงซ้าย-ขวา) -->
+              <div class="col-12 col-md-6 sponsor-card-item" data-code="">
+                <div
+                  class="card shadow-sm position-relative border-0 rounded-2 overflow-hidden bg-white hover-shadow transition-all"
+                >
+                  <!-- ใช้ row g-0 เพื่อแบ่งพื้นที่การ์ดเป็นฝั่งซ้าย และ ฝั่งขวา -->
+                  <div class="row g-0 align-items-center">
+                    <!-- 📦 ฝั่งซ้าย (ส่วนที่ 1) -->
+                    <div class="col-6 p-2 border-end">
+                      <div
+                        class="d-flex flex-column align-items-center text-center"
+                      >
+                        <!-- รูปภาพ -->
+                        <div class="position-relative w-100 mb-2">
+                          <img
+                            src="img_game/game.png"
+                            alt=""
+                            class="d-block w-100 rounded-2 sponsor-img-1"
+                            style="height: 300px; object-fit: cover"
+                          />
+                        </div>
+                        <!-- ชื่อ -->
+                        <div class="w-100 text-truncate">
+                          <span
+                            class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 w-100 text-truncate sponsor-name-1"
+                            style="font-size: 16px; font-weight: 500"
+                          >
+                            เกมคีมตุ๊กตา
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 📦 ฝั่งขวา (ส่วนที่ 2 - ที่ย้ายขึ้นมาต่อด้านข้าง) -->
+                    <div class="col-6 p-2">
+                      <div
+                        class="d-flex flex-column align-items-center text-center"
+                      >
+                        <!-- รูปภาพ -->
+                        <div class="position-relative w-100 mb-2">
+                          <img
+                            src="img_game/game.png"
+                            alt=""
+                            class="d-block w-100 rounded-2 sponsor-img-2"
+                            style="height: 300px; object-fit: cover"
+                          />
+                        </div>
+                        <!-- ชื่อ -->
+                        <div class="w-100 text-truncate">
+                          <span
+                            class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 w-100 text-truncate sponsor-name-2"
+                            style="font-size: 16px; font-weight: 500"
+                          >
+                            เกมคีมตุ๊กตา
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- /.container-fluid -->
+        </div>
+        <!-- End of Main Content -->
+
+        <!-- Footer -->
+        <footer class="sticky-footer bg-white py-3 border-top mt-auto">
+          <div class="container my-auto">
+            <div class="copyright text-center my-auto small text-muted">
+              <span>Copyright &copy; Your Website 2026</span>
+            </div>
+          </div>
+        </footer>
+        <!-- End of Footer -->
+      </div>
+      <!-- End of Content Wrapper -->
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Logout Modal-->
+    <div
+      class="modal fade"
+      id="logoutModal"
+      tabindex="-1"
+      aria-labelledby="logoutModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="logoutModalLabel">Ready to Leave?</h5>
+            <button
+              class="btn-close"
+              type="button"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            Select "Logout" below if you are ready to end your current session.
+          </div>
+          <div class="modal-footer">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <a class="btn btn-primary" href="#">Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JavaScript Bundle CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
