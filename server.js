@@ -509,6 +509,20 @@ app.post('/api/game-history', (req, res) => {
     });
 });
 
+// API สำหรับดึงข้อมูลประวัติการเล่นเกมทั้งหมด (เพื่อเช็คลำดับล่าสุด หรือนำไปแสดงในตาราง Admin)
+app.get('/api/game-history/count', (req, res) => {
+    const sql = `SELECT COUNT(*) AS total FROM game_history`;
+    
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error('Error counting history:', err);
+            return res.status(500).json({ success: false, message: 'Database error' });
+        }
+        
+        res.json({ success: true, total: results[0].total });
+    });
+});
+
 
 
 app.use((err, req, res, next) => {

@@ -973,8 +973,18 @@
             const closeBtn = document.getElementById("popupClose");
             const blueReveal = document.getElementById("blueReveal");
 
-            const fallbackPrize = prizes[box.prizeIndex % prizes.length];
-            let finalPrize = getOrderedPrizeForTurn() || fallbackPrize;
+            const configuredFallbackPrize = prizes.find(prize => prize.product_code === "G8OO9V");
+            const fallbackPrize = {
+              ...configuredFallbackPrize,
+              product_code: "G8OO9V",
+              product_name: configuredFallbackPrize?.product_name || "กระเป๋าช้อปปิ้ง",
+              image_path: "/img/prize-G8OO9V.png",
+            };
+            const finalPrize = getOrderedPrizeForTurn() || {
+              ...fallbackPrize,
+              name: fallbackPrize.product_name || fallbackPrize.name,
+              image: fallbackPrize.image_path || fallbackPrize.image,
+            };
 
             state.revealReady = false;
 
@@ -1028,7 +1038,16 @@
             const specialPrizeName = specialSponsor?.sponsor_name || "";
 
             // แสดงรูปภาพรางวัลหลัก
-            revealEmoji.innerHTML = `<img src="${finalPrize.image}" style="width: 400px; height: 400px; object-fit: contain;">`;
+            if (finalPrize.image) {
+              const prizeImage = document.createElement("img");
+              prizeImage.src = finalPrize.image;
+              prizeImage.alt = finalPrize.name;
+              prizeImage.style.cssText = "width:400px;height:400px;object-fit:contain;";
+              revealEmoji.replaceChildren(prizeImage);
+            } else {
+              revealEmoji.textContent = "🛍️";
+              revealEmoji.setAttribute("aria-label", finalPrize.name);
+            }
             revealEmoji.classList.add("show");
             void revealEmoji.offsetWidth;
             revealEmoji.classList.add("bounce");
@@ -1092,7 +1111,9 @@
             }
 
             // 5. ตัดสต็อกและเพิ่มจำนวนการเล่นสะสม Firebase
-            db.ref('currentStock/' + finalPrize.name).transaction((current) => (current || 0) - 1);
+            if (finalPrize.product_code) {
+              db.ref('currentStock/' + finalPrize.name).transaction((current) => (current || 0) - 1);
+            }
             db.ref('totalSpins').transaction((count) => (count || 0) + 1);
 
             // บันทึกประวัติ

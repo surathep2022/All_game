@@ -85,243 +85,270 @@
     };
 
 
-    // เก็บข้อมูลลำดับรางวัล (Key: ลำดับที่ 1-100, Value: ข้อมูลของรางวัลที่เลือก)
-let prizeOrders = {};
-let currentRangeStart = 1;
-const rangeSize = 100; // แสดงหน้าละ 20 ช่อง (รวม 5 แท็ก เป็น 100 ช่อง)
-let availablePrizesList = []; // เก็บรายการของรางวัลที่เปิดใช้งานอยู่
+        // เก็บข้อมูลลำดับรางวัล (Key: ลำดับที่ 1-100, Value: ข้อมูลของรางวัลที่เลือก)
+    let prizeOrders = {};
+    let currentRangeStart = 1;
+    const rangeSize = 100; // แสดงหน้าละ 20 ช่อง (รวม 5 แท็ก เป็น 100 ช่อง)
+    let availablePrizesList = []; // เก็บรายการของรางวัลที่เปิดใช้งานอยู่
+    let historyCount = 0;
 
-document.addEventListener("DOMContentLoaded", function () {
-    initOrderModule();
-});
+    document.addEventListener("DOMContentLoaded", function () {
+        initOrderModule();
+    });
 
-// เริ่มต้นโหลดระบบจัดการลำดับรางวัล
-async function initOrderModule() {
-    await fetchActivePrizesForOrder();
-    renderRangeTabs();
-    renderOrderGrid(1);
-    loadSavedOrders(); // โหลดข้อมูลเก่าที่เคยบันทึกไว้ (ถ้ามี)
-}
+    // เริ่มต้นโหลดระบบจัดการลำดับรางวัล
+    async function initOrderModule() {
+        await fetchActivePrizesForOrder();
+        historyCount = await count_history();
+        renderRangeTabs();
+        renderOrderGrid(1);
+        loadSavedOrders(); // โหลดข้อมูลเก่าที่เคยบันทึกไว้ (ถ้ามี)
+    }
 
-// 1. ดึงรายการของรางวัลที่เปิดใช้งานอยู่จาก Server
-async function fetchActivePrizesForOrder() {
-    try {
-        const response = await fetch('/api/prizes');
-        const result = await response.json();
-        if (result.success) {
-            // กรองเฉพาะอันที่ status === 'on' (ถ้ามี) หรือใช้ทั้งหมด
-            availablePrizesList = result.data.filter(item => item.status === 'on');
+    // 1. ดึงรายการของรางวัลที่เปิดใช้งานอยู่จาก Server
+    async function fetchActivePrizesForOrder() {
+        try {
+            const response = await fetch('/api/prizes');
+            const result = await response.json();
+            if (result.success) {
+                // กรองเฉพาะอันที่ status === 'on' (ถ้ามี) หรือใช้ทั้งหมด
+                availablePrizesList = result.data.filter(item => item.status === 'on');
+            }
+        } catch (error) {
+            console.error('Error fetching prizes:', error);
         }
-    } catch (error) {
-        console.error('Error fetching prizes:', error);
     }
-}
 
-// 2. สร้างปุ่มแท็กช่วงลำดับ (1-20, 21-40, 41-60, 61-80, 81-100)
-function renderRangeTabs() {
-    const tabsContainer = document.getElementById('order-range-tabs');
-    if (!tabsContainer) return;
-    tabsContainer.innerHTML = '';
+    // 2. สร้างปุ่มแท็กช่วงลำดับ (1-20, 21-40, 41-60, 61-80, 81-100)
+    function renderRangeTabs() {
+        const tabsContainer = document.getElementById('order-range-tabs');
+        if (!tabsContainer) return;
+        tabsContainer.innerHTML = '';
 
-    for (let i = 1; i <= 100; i += rangeSize) {
-        const end = Math.min(i + rangeSize - 1, 100);
-        const isActive = i === currentRangeStart ? 'active' : '';
+        for (let i = 1; i <= 100; i += rangeSize) {
+            const end = Math.min(i + rangeSize - 1, 100);
+            const isActive = i === currentRangeStart ? 'active' : '';
+            
+            const btn = document.createElement('button');
+            btn.className = `btn btn-sm btn-outline-success me-2 mb-2 px-3 py-2 rounded-3 ${isActive}`;
+            btn.style.fontFamily = "'Kanit', sans-serif;";
+            btn.innerText = `ลำดับที่ ${i} - ${end}`;
+            btn.onclick = () => {
+                currentRangeStart = i;
+                renderRangeTabs();
+                renderOrderGrid(i);
+            };
+            tabsContainer.appendChild(btn);
+        }
+    }
+
+
+    async function count_history() {
+        try {
+            const response = await fetch('/api/game-history/count');
+            if (!response.ok) {
+                throw new Error(`ไม่สามารถโหลดจำนวนประวัติได้ (${response.status})`);
+            }
+
+            const result = await response.json();
+            //console.error(result);
+            if (!result.success || !Number.isFinite(Number(result.total))) {
+                throw new Error(result.message || 'รูปแบบจำนวนประวัติไม่ถูกต้อง');
+            }
+
+            return Number(result.total);
+        } catch (error) {
+            console.error('Error fetching game history:', error);
+            return 0;
+        }
+    }
+
+    // 3. สร้างตารางช่องเลือกรางวัล (Grid 20 ช่องต่อหน้า)
+    function renderOrderGrid(startNum) {
+        const gridContainer = document.getElementById('order-grid');
+        if (!gridContainer) return;
+        gridContainer.innerHTML = '';
         
-        const btn = document.createElement('button');
-        btn.className = `btn btn-sm btn-outline-success me-2 mb-2 px-3 py-2 rounded-3 ${isActive}`;
-        btn.style.fontFamily = "'Kanit', sans-serif;";
-        btn.innerText = `ลำดับที่ ${i} - ${end}`;
-        btn.onclick = () => {
-            currentRangeStart = i;
-            renderRangeTabs();
-            renderOrderGrid(i);
-        };
-        tabsContainer.appendChild(btn);
-    }
-}
+        // กำหนด Grid style เบื้องต้นให้เรียงสวยงาม
+        gridContainer.className = "row g-3";
 
-// 3. สร้างตารางช่องเลือกรางวัล (Grid 20 ช่องต่อหน้า)
-function renderOrderGrid(startNum) {
-    const gridContainer = document.getElementById('order-grid');
-    if (!gridContainer) return;
-    gridContainer.innerHTML = '';
-    
-    // กำหนด Grid style เบื้องต้นให้เรียงสวยงาม
-    gridContainer.className = "row g-3";
+        const endNum = Math.min(startNum + rangeSize - 1, 100);
+        const passedSlots = historyCount > 0
+            ? (historyCount % 100 || 100)
+            : 0;
 
-    const endNum = Math.min(startNum + rangeSize - 1, 100);
+        for (let i = startNum; i <= endNum; i++) {
+            const prize = prizeOrders[i]; // ของรางวัลที่เลือกไว้ในลำดับนี้
+            const hasPassed = i <= passedSlots;
 
-    for (let i = startNum; i <= endNum; i++) {
-        const prize = prizeOrders[i]; // ของรางวัลที่เลือกไว้ในลำดับนี้
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-1';
 
-        const col = document.createElement('div');
-        col.className = 'col-6 col-md-4 col-lg-1';
+            col.innerHTML = `
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-2 text-center position-relative hover-shadow transition-all" 
+                    style="cursor: pointer; background-color: ${hasPassed ? '#d1e7dd' : (prize ? '#f8fff9' : '#fff')}; border: 2px dashed ${prize ? '#198754' : '#dee2e6'} !important;"
+                    onclick="openPrizeSelector(${i})">
+                    
+                    <span class="position-absolute badge rounded-pill bg-success" style="top: 6px; left: 6px; font-size: 11px; z-index: 5; padding: 2px 6px;">
+                        #${i}
+                    </span>
 
-        col.innerHTML = `
-            <div class="card h-100 border-0 shadow-sm rounded-4 p-2 text-center position-relative hover-shadow transition-all" 
-                 style="cursor: pointer; background-color: ${prize ? '#f8fff9' : '#fff'}; border: 2px dashed ${prize ? '#198754' : '#dee2e6'} !important;"
-                 onclick="openPrizeSelector(${i})">
-                
-                <span class="position-absolute badge rounded-pill bg-success" style="top: 6px; left: 6px; font-size: 11px; z-index: 5; padding: 2px 6px;">
-                    #${i}
-                </span>
-
-                <div class="card-body d-flex flex-column align-items-center justify-content-center p-2 pt-3">
-                    ${prize ? `
-                        <img src="${prize.image_path}" class="rounded-3 mb-2 shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
-                        <h6 class="text-dark fw-bold text-truncate w-100 mb-0" style="font-size: 12px; font-family: 'Google Sans', sans-serif;">${prize.product_name}</h6>
-                        <small class="text-muted" style="font-size: 10px;">${prize.product_code}</small>
-                    ` : `
-                        <div class="py-3 text-muted">
-                            <i class="bi bi-plus-circle fs-3 text-success"></i>
-                            <p class="mb-0 mt-1" style="font-size: 12px; font-family: 'Kanit', sans-serif;">คลิกเลือกรางวัล</p>
-                        </div>
-                    `}
-                </div>
-            </div>
-        `;
-        gridContainer.appendChild(col);
-    }
-}
-
-// 4. เปิด Modal เลือกของรางวัลสำหรับช่องนั้นๆ (ใช้ SweetAlert2)
-async function openPrizeSelector(slotIndex) {
-    if (availablePrizesList.length === 0) {
-        Swal.fire('แจ้งเตือน', 'ยังไม่มีของรางวัลที่เปิดใช้งาน กรุณาเพิ่มของรางวัลในหน้าจัดการก่อน', 'warning');
-        return;
-    }
-
-    // สร้าง HTML รายการของรางวัลให้เลือกใน SweetAlert
-    let optionsHtml = `<div class="row g-2 text-start" style="max-height: 350px; overflow-y: auto;">`;
-    // ปรับฟังก์ชันเปิด Modal ให้ส่ง product_code เข้าไปแทน id
-    availablePrizesList.forEach(p => {
-        optionsHtml += `
-            <div class="col-3">
-                <div class="p-2 border rounded-3 d-flex align-items-center prize-option-card shadow-sm" 
-                    style="cursor: pointer; transition: 0.2s;" 
-                    onclick="selectPrizeForSlot(${slotIndex}, '${p.product_code}')">
-                    <img src="${p.image_path}" class="rounded-2 me-2" style="width: 45px; height: 45px; object-fit: cover;">
-                    <div class="text-truncate">
-                        <div class="fw-bold text-dark text-truncate" style="font-size: 12px;">${p.product_name}</div>
-                        <div class="text-muted" style="font-size: 10px;">รหัส: ${p.product_code}</div>
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center p-2 pt-3">
+                        ${prize ? `
+                            <img src="${prize.image_path}" class="rounded-3 mb-2 shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
+                            <h6 class="text-dark fw-bold text-truncate w-100 mb-0" style="font-size: 12px; font-family: 'Google Sans', sans-serif;">${prize.product_name}</h6>
+                            <small class="text-muted" style="font-size: 10px;">${prize.product_code}</small>
+                        ` : `
+                            <div class="py-3 text-muted">
+                                <i class="bi bi-plus-circle fs-3 text-success"></i>
+                                <p class="mb-0 mt-1" style="font-size: 12px; font-family: 'Kanit', sans-serif;">คลิกเลือกรางวัล</p>
+                            </div>
+                        `}
                     </div>
                 </div>
-            </div>
-        `;
-    });
-    optionsHtml += `</div>`;
-
-    Swal.fire({
-        title: `ลำดับที่ #${slotIndex}`,
-        html: optionsHtml,
-        showConfirmButton: false,
-        showCloseButton: true,
-        width: '600px'
-    });
-}
-
-// 5. เมื่อผู้ใช้คลิกเลือกของรางวัลใส่ช่อง
-function selectPrizeForSlot(slotIndex, productCode) {
-    const selectedPrize = availablePrizesList.find(p => p.product_code === productCode);
-    if (selectedPrize) {
-        prizeOrders[slotIndex] = selectedPrize;
-        Swal.close();
-        renderOrderGrid(currentRangeStart); // อัปเดตตารางแสดงผล
+            `;
+            gridContainer.appendChild(col);
+        }
     }
-}
 
-// 6. บันทึกลำดับรางวัลทั้งหมดลงฐานข้อมูล
-async function savePrizeOrder() {
-    try {
-        const response = await fetch('/api/prize-orders', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(prizeOrders)
+    // 4. เปิด Modal เลือกของรางวัลสำหรับช่องนั้นๆ (ใช้ SweetAlert2)
+    async function openPrizeSelector(slotIndex) {
+        if (availablePrizesList.length === 0) {
+            Swal.fire('แจ้งเตือน', 'ยังไม่มีของรางวัลที่เปิดใช้งาน กรุณาเพิ่มของรางวัลในหน้าจัดการก่อน', 'warning');
+            return;
+        }
+
+        // สร้าง HTML รายการของรางวัลให้เลือกใน SweetAlert
+        let optionsHtml = `<div class="row g-2 text-start" style="max-height: 350px; overflow-y: auto;">`;
+        // ปรับฟังก์ชันเปิด Modal ให้ส่ง product_code เข้าไปแทน id
+        availablePrizesList.forEach(p => {
+            optionsHtml += `
+                <div class="col-3">
+                    <div class="p-2 border rounded-3 d-flex align-items-center prize-option-card shadow-sm" 
+                        style="cursor: pointer; transition: 0.2s;" 
+                        onclick="selectPrizeForSlot(${slotIndex}, '${p.product_code}')">
+                        <img src="${p.image_path}" class="rounded-2 me-2" style="width: 45px; height: 45px; object-fit: cover;">
+                        <div class="text-truncate">
+                            <div class="fw-bold text-dark text-truncate" style="font-size: 12px;">${p.product_name}</div>
+                            <div class="text-muted" style="font-size: 10px;">รหัส: ${p.product_code}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
         });
+        optionsHtml += `</div>`;
 
-        const result = await response.json();
+        Swal.fire({
+            title: `ลำดับที่ #${slotIndex}`,
+            html: optionsHtml,
+            showConfirmButton: false,
+            showCloseButton: true,
+            width: '600px'
+        });
+    }
 
-        if (response.ok && result.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'บันทึกสำเร็จ!',
-                text: 'บันทึกลำดับของรางวัลลงฐานข้อมูลเรียบร้อยแล้ว',
-                timer: 1500,
-                showConfirmButton: true,
-                confirmButtonText: 'ตกลง',
-                confirmButtonColor: '#198754'
+    // 5. เมื่อผู้ใช้คลิกเลือกของรางวัลใส่ช่อง
+    function selectPrizeForSlot(slotIndex, productCode) {
+        const selectedPrize = availablePrizesList.find(p => p.product_code === productCode);
+        if (selectedPrize) {
+            prizeOrders[slotIndex] = selectedPrize;
+            Swal.close();
+            renderOrderGrid(currentRangeStart); // อัปเดตตารางแสดงผล
+        }
+    }
+
+    // 6. บันทึกลำดับรางวัลทั้งหมดลงฐานข้อมูล
+    async function savePrizeOrder() {
+        try {
+            const response = await fetch('/api/prize-orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(prizeOrders)
             });
-        } else {
-            Swal.fire('ผิดพลาด!', result.message || 'ไม่สามารถบันทึกได้', 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        Swal.fire('ผิดพลาด!', 'ไม่สามารถเชื่อมต่อกับ Server ได้', 'error');
-    }
-}
 
-// 2. โหลดข้อมูลลำดับรางวัลจาก MySQL ตอนเปิดหน้าเว็บ
-async function loadSavedOrders() {
-    try {
-        const response = await fetch('/api/prize-orders');
-        const result = await response.json();
+            const result = await response.json();
 
-        if (result.success && result.data) {
-            prizeOrders = result.data; // นำข้อมูล Object ที่ดึงมาใส่ตัวแปรหลัก
-            renderOrderGrid(currentRangeStart);
-        }
-    } catch (error) {
-        console.error('Error loading saved orders:', error);
-    }
-}
-
-// 7. ลบลำดับทั้งหมด (ลบเฉพาะในตาราง prize_orders)
-function clearAllOrders() {
-    Swal.fire({
-        title: 'คุณต้องการล้างลำดับ?',
-        text: 'ข้อมูลลำดับของรางวัลทั้งหมดจะถูกลบ',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'ใช่, ล้างเลย',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#dc3545'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                // ส่งคำสั่ง DELETE ไปยัง Backend เพื่อเคลียร์ข้อมูลในตาราง prize_orders
-                const response = await fetch('/api/prize-orders', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+            if (response.ok && result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกสำเร็จ!',
+                    text: 'บันทึกลำดับของรางวัลลงฐานข้อมูลเรียบร้อยแล้ว',
+                    timer: 1500,
+                    showConfirmButton: true,
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#198754'
                 });
-
-                const resData = await response.json();
-
-                if (response.ok && resData.success) {
-                    // เคลียร์ข้อมูลในตัวแปรฝั่งหน้าจอ
-                    prizeOrders = {};
-                    localStorage.removeItem('saved_prize_orders');
-                    
-                    // เรนเดอร์ตารางใหม่ให้ทุกช่องว่างเปล่าพร้อมเลือกใหม่
-                    renderOrderGrid(currentRangeStart);
-
-                    Swal.fire({ 
-                        icon: 'success', 
-                        title: 'ล้างข้อมูลสำเร็จ', 
-                        text: 'ลบลำดับในตาราง เรียบร้อยแล้ว',
-                        timer: 1200, 
-                        showConfirmButton: false 
-                    });
-                } else {
-                    Swal.fire('ผิดพลาด!', resData.message || 'ไม่สามารถล้างข้อมูลได้', 'error');
-                }
-            } catch (error) {
-                console.error('Error clearing orders:', error);
-                Swal.fire('ผิดพลาด!', 'ไม่สามารถเชื่อมต่อกับ Server ได้', 'error');
+            } else {
+                Swal.fire('ผิดพลาด!', result.message || 'ไม่สามารถบันทึกได้', 'error');
             }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('ผิดพลาด!', 'ไม่สามารถเชื่อมต่อกับ Server ได้', 'error');
         }
-    });
-}
+    }
+
+    // 2. โหลดข้อมูลลำดับรางวัลจาก MySQL ตอนเปิดหน้าเว็บ
+    async function loadSavedOrders() {
+        try {
+            const response = await fetch('/api/prize-orders');
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                prizeOrders = result.data; // นำข้อมูล Object ที่ดึงมาใส่ตัวแปรหลัก
+                renderOrderGrid(currentRangeStart);
+            }
+        } catch (error) {
+            console.error('Error loading saved orders:', error);
+        }
+    }
+
+    // 7. ลบลำดับทั้งหมด (ลบเฉพาะในตาราง prize_orders)
+    function clearAllOrders() {
+        Swal.fire({
+            title: 'คุณต้องการล้างลำดับ?',
+            text: 'ข้อมูลลำดับของรางวัลทั้งหมดจะถูกลบ',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ใช่, ล้างเลย',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#dc3545'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    // ส่งคำสั่ง DELETE ไปยัง Backend เพื่อเคลียร์ข้อมูลในตาราง prize_orders
+                    const response = await fetch('/api/prize-orders', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const resData = await response.json();
+
+                    if (response.ok && resData.success) {
+                        // เคลียร์ข้อมูลในตัวแปรฝั่งหน้าจอ
+                        prizeOrders = {};
+                        localStorage.removeItem('saved_prize_orders');
+                        
+                        // เรนเดอร์ตารางใหม่ให้ทุกช่องว่างเปล่าพร้อมเลือกใหม่
+                        renderOrderGrid(currentRangeStart);
+
+                        Swal.fire({ 
+                            icon: 'success', 
+                            title: 'ล้างข้อมูลสำเร็จ', 
+                            text: 'ลบลำดับในตาราง เรียบร้อยแล้ว',
+                            timer: 1200, 
+                            showConfirmButton: false 
+                        });
+                    } else {
+                        Swal.fire('ผิดพลาด!', resData.message || 'ไม่สามารถล้างข้อมูลได้', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error clearing orders:', error);
+                    Swal.fire('ผิดพลาด!', 'ไม่สามารถเชื่อมต่อกับ Server ได้', 'error');
+                }
+            }
+        });
+    }
