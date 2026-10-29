@@ -15,6 +15,12 @@
         let dbQueue = [];
         let dbStock = {};
         let dbTotalSpins = 0;
+        let resolveFirebaseStateReady;
+        let firebaseStateLoadError = null;
+        let prizeOrdersLoadError = null;
+        const firebaseStateReady = new Promise((resolve) => {
+          resolveFirebaseStateReady = resolve;
+        });
         let prizes = [];
         let prizeOrders = {};
         let sponsors = [];
@@ -116,7 +122,7 @@
         }
 
         const prizesReady = loadPrizesFromDatabase();
-
+       // prizesReady.then(() => console.log(prizes))
 
         async function loadprize_orders() {
           try {
@@ -132,16 +138,16 @@
             }
 
             prizeOrders = result.data;
+            prizeOrdersLoadError = null;
             return prizeOrders;
           } catch (error) {
             console.error('เกิดข้อผิดพลาดในการเชื่อมต่อ API:', error);
+            prizeOrdersLoadError = error;
             prizeOrders = {};
             return prizeOrders;
           }
           
         }
-
-        const prizeOrdersReady = loadprize_orders();
 
         async function loadsponsorsFromDatabase() {
             try {
@@ -771,7 +777,18 @@
           if (phase !== "locked") return;
 
           phase = "loading";
-          await Promise.all([prizesReady, sponsorDataReady, prizeOrdersReady]);
+          try {
+            await Promise.all([prizesReady, sponsorDataReady, firebaseStateReady]);
+            if (firebaseStateLoadError) throw firebaseStateLoadError;
+            await loadprize_orders();
+            if (prizeOrdersLoadError) throw prizeOrdersLoadError;
+          } catch (error) {
+            console.error('ไม่สามารถโหลดข้อมูลลำดับรางวัลได้:', error);
+            phase = "locked";
+            setHint("ไม่สามารถโหลดลำดับรางวัลได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่");
+            return;
+          }
+
           if (prizes.length === 0) {
             phase = "locked";
             setHint("ไม่สามารถโหลดรางวัลได้ กรุณาตรวจสอบข้อมูลแล้วลองใหม่");
@@ -1012,6 +1029,7 @@
             popTitle.style.marginBottom = "8px";
             popTitle.style.display = "block";
 
+            popText.classList.remove("prize-result");
             popText.textContent = "";
             closeBtn.style.display = "none";
             overlay.classList.add("show");
@@ -1042,7 +1060,7 @@
               const prizeImage = document.createElement("img");
               prizeImage.src = finalPrize.image;
               prizeImage.alt = finalPrize.name;
-              prizeImage.style.cssText = "width:400px;height:400px;object-fit:contain;";
+              prizeImage.style.cssText = "width:300px;height:300px;object-fit:contain;";
               revealEmoji.replaceChildren(prizeImage);
             } else {
               revealEmoji.textContent = "🛍️";
@@ -1062,6 +1080,7 @@
             popTitle.style.fontFamily = "'Kanit', sans-serif";
             popTitle.style.fontWeight = "700";
 
+            popText.classList.add("prize-result");
             popText.innerHTML = `
                 <div style="
                     font-family: 'Kanit', sans-serif;
@@ -1233,7 +1252,13 @@
           dbQueue = normalizeQueue(data.customerQueue || {});
           dbStock = data.currentStock || {};
           dbTotalSpins = data.totalSpins || 0;
+          firebaseStateLoadError = null;
           syncPlayerFromAdmin();
+          resolveFirebaseStateReady();
+        }, (error) => {
+          firebaseStateLoadError = error;
+          console.error('ไม่สามารถโหลดสถานะเกมจาก Firebase ได้:', error);
+          resolveFirebaseStateReady();
         });
 
         phase = "locked";

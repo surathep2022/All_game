@@ -129,6 +129,20 @@
                 .text(item.sponsor_name)
                 .attr("title", item.sponsor_name);
 
+              $cardItem
+                .find(".sponsor-quantity")
+                .text(
+                  item.quantity == null
+                    ? "ยังไม่กำหนดจำนวน"
+                    : `${item.quantity} ครั้ง`,
+                )
+                .attr(
+                  "title",
+                  item.quantity == null
+                    ? "ยังไม่กำหนดจำนวน"
+                    : `${item.quantity} ครั้ง`,
+                );
+
               // นำการ์ดที่เติมข้อมูลเรียบร้อยแล้ว แปะใส่ลงใน Container หลัก
               $container.append($cardItem);
             });
@@ -441,20 +455,51 @@
 
               <div class="col-6 col-md-4 col-lg-2 sponsor-card-item">
                 <div
-                  class="card shadow-sm position-relative h-100 border-0 rounded-4 overflow-hidden bg-white hover-shadow transition-all"
+                  class="card shadow-sm position-relative h-100 border-0 rounded-4 overflow-hidden bg-white hover-shadow transition-all p-3"
                 >
-                  <!-- เนื้อหาการ์ด -->
+                  <!-- จัดให้ชื่อผู้สนับสนุน และ จำนวน อยู่แถวเดียวกัน (Row) ด้วย d-flex -->
+                  <div class="d-flex gap-2 mb-3">
+                    <!-- ชื่อผู้สนับสนุน -->
+                    <div class="flex-grow-1 text-truncate">
+                      <span
+                        class="badge bg-success-subtle text-success border border-success-subtle px-2 py-2 w-100 text-truncate sponsor-name"
+                        style="
+                          font-family: &quot;Google Sans&quot;, sans-serif;
+                          font-size: 16px;
+                          font-weight: 500;
+                        "
+                      >
+                        <!-- ชื่อผู้สนับสนุน -->
+                      </span>
+                    </div>
+
+                    <!-- จำนวน (Quantity) -->
+                    <div style="width: 80px" class="flex-shrink-0">
+                      <span
+                        class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-2 w-100 text-center sponsor-quantity"
+                        style="
+                          font-family: &quot;Google Sans&quot;, sans-serif;
+                          font-size: 16px;
+                          font-weight: 500;
+                        "
+                      >
+                        <!-- ค่า Quantity จะถูกใส่มาตรงนี้ -->
+                      </span>
+                    </div>
+                  </div>
+
                   <div
-                    class="card-body text-center pt-4 px-2 pb-2 d-flex flex-column align-items-center"
+                    class="card-body text-center p-0 d-flex flex-column align-items-center"
                   >
-                    <!-- รูปภาพโลโก้ (เปิดใช้งานโครงสร้างรูปภาพ) -->
+                    <!-- รูปภาพโลโก้ -->
                     <div class="position-relative mb-2">
                       <img
                         src=""
                         alt=""
                         class="rounded-3 shadow-sm sponsor-img"
                         style="
-                          width: 200px;
+                          width: 100%;
+                          max-width: 200px;
                           height: 200px;
                           object-fit: cover;
                           border: 1px solid #f0f0f0;
@@ -462,29 +507,9 @@
                       />
                     </div>
 
-                    <!-- รหัสผู้สนับสนุน -->
-                    <div class="mb-1">
-                      <span
-                        class="badge bg-light text-secondary px-2 py-1 sponsor-code"
-                        style="font-size: 24px; letter-spacing: 0.5px"
-                      >
-                        <!-- ข้อมูลจะถูกใส่มาตรงนี้ -->
-                      </span>
-                    </div>
-
-                    <!-- ชื่อผู้สนับสนุน -->
-                    <div class="w-90 text-truncate">
-                      <span
-                        class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 w-100 text-truncate sponsor-name"
-                        style="
-                          font-family: &quot;Google Sans&quot;, sans-serif;
-                          font-size: 24px;
-                          font-weight: 500;
-                        "
-                      >
-                        <!-- ข้อมูลจะถูกใส่มาตรงนี้ -->
-                      </span>
-                    </div>
+                    <h6 class="text-muted mb-0">
+                      แจกไป : <span class="fw-bold text-dark">ชิ้น</span>
+                    </h6>
                   </div>
                 </div>
               </div>
@@ -533,7 +558,7 @@
                         style="font-size: 18px"
                       >
                         <i class="bi bi-pie-chart-fill text-success me-1"></i>
-                        จัดสรรสัดส่วนผู้สนับสนุน 
+                        จัดสรรสัดส่วนผู้สนับสนุน
                       </label>
                       <!-- แสดงผลยอดรวมแบบ Real-time -->
                       <span

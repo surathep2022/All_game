@@ -88,7 +88,7 @@
         // เก็บข้อมูลลำดับรางวัล (Key: ลำดับที่ 1-100, Value: ข้อมูลของรางวัลที่เลือก)
     let prizeOrders = {};
     let currentRangeStart = 1;
-    const rangeSize = 100; // แสดงหน้าละ 20 ช่อง (รวม 5 แท็ก เป็น 100 ช่อง)
+    const rangeSize = 100;
     let availablePrizesList = []; // เก็บรายการของรางวัลที่เปิดใช้งานอยู่
     let historyCount = 0;
 
@@ -99,10 +99,16 @@
     // เริ่มต้นโหลดระบบจัดการลำดับรางวัล
     async function initOrderModule() {
         await fetchActivePrizesForOrder();
-        historyCount = await count_history();
+        try {
+            historyCount = await count_history();
+        } catch (error) {
+            console.error('Error fetching game history:', error);
+        }
+        currentRangeStart = getCurrentCycleStart();
         renderRangeTabs();
-        renderOrderGrid(1);
+        renderOrderGrid(currentRangeStart);
         loadSavedOrders(); // โหลดข้อมูลเก่าที่เคยบันทึกไว้ (ถ้ามี)
+        window.setInterval(refreshHistoryCount, 2000);
     }
 
     // 1. ดึงรายการของรางวัลที่เปิดใช้งานอยู่จาก Server
@@ -119,14 +125,20 @@
         }
     }
 
-    // 2. สร้างปุ่มแท็กช่วงลำดับ (1-20, 21-40, 41-60, 61-80, 81-100)
+    function getCurrentCycleStart(total = historyCount) {
+        return Math.floor(total / rangeSize) * rangeSize + 1;
+    }
+
+    // แสดงช่วงลำดับ 100 รอบของรอบปัจจุบัน เช่น 101-200
     function renderRangeTabs() {
         const tabsContainer = document.getElementById('order-range-tabs');
         if (!tabsContainer) return;
         tabsContainer.innerHTML = '';
 
-        for (let i = 1; i <= 100; i += rangeSize) {
-            const end = Math.min(i + rangeSize - 1, 100);
+        const cycleStart = getCurrentCycleStart();
+        const cycleEnd = cycleStart + rangeSize - 1;
+        for (let i = cycleStart; i <= cycleEnd; i += rangeSize) {
+            const end = Math.min(i + rangeSize - 1, cycleEnd);
             const isActive = i === currentRangeStart ? 'active' : '';
             
             const btn = document.createElement('button');
@@ -144,22 +156,33 @@
 
 
     async function count_history() {
+        const response = await fetch('/api/game-history/count');
+        if (!response.ok) {
+            throw new Error(`ไม่สามารถโหลดจำนวนประวัติได้ (${response.status})`);
+        }
+
+        const result = await response.json();
+        if (!result.success || !Number.isFinite(Number(result.total))) {
+            throw new Error(result.message || 'รูปแบบจำนวนประวัติไม่ถูกต้อง');
+        }
+
+        return Number(result.total);
+    }
+
+    async function refreshHistoryCount() {
         try {
-            const response = await fetch('/api/game-history/count');
-            if (!response.ok) {
-                throw new Error(`ไม่สามารถโหลดจำนวนประวัติได้ (${response.status})`);
+            const latestCount = await count_history();
+            if (latestCount !== historyCount) {
+                const cycleChanged = getCurrentCycleStart(latestCount) !== getCurrentCycleStart();
+                historyCount = latestCount;
+                if (cycleChanged) {
+                    currentRangeStart = getCurrentCycleStart();
+                    renderRangeTabs();
+                }
+                renderOrderGrid(currentRangeStart);
             }
-
-            const result = await response.json();
-            //console.error(result);
-            if (!result.success || !Number.isFinite(Number(result.total))) {
-                throw new Error(result.message || 'รูปแบบจำนวนประวัติไม่ถูกต้อง');
-            }
-
-            return Number(result.total);
         } catch (error) {
-            console.error('Error fetching game history:', error);
-            return 0;
+            console.error('Error refreshing game history:', error);
         }
     }
 
@@ -172,24 +195,31 @@
         // กำหนด Grid style เบื้องต้นให้เรียงสวยงาม
         gridContainer.className = "row g-3";
 
-        const endNum = Math.min(startNum + rangeSize - 1, 100);
-        const passedSlots = historyCount > 0
-            ? (historyCount % 100 || 100)
-            : 0;
+        const endNum = Math.min(startNum + rangeSize - 1, getCurrentCycleStart() + rangeSize - 1);
+        const passedSlots = historyCount % rangeSize;
+        const nextPrizeNumber = historyCount + 1;
 
         for (let i = startNum; i <= endNum; i++) {
-            const prize = prizeOrders[i]; // ของรางวัลที่เลือกไว้ในลำดับนี้
-            const hasPassed = i <= passedSlots;
+            const slotIndex = ((i - 1) % rangeSize) + 1;
+            const prize = prizeOrders[slotIndex]; // รอบที่เกิน 100 วนกลับมาใช้ช่องเดิม
+            const hasPassed = i - startNum < passedSlots;
+            const isNextPrize = i === nextPrizeNumber;
 
             const col = document.createElement('div');
             col.className = 'col-6 col-md-4 col-lg-1';
 
             col.innerHTML = `
                 <div class="card h-100 border-0 shadow-sm rounded-4 p-2 text-center position-relative hover-shadow transition-all" 
-                    style="cursor: pointer; background-color: ${hasPassed ? '#d1e7dd' : (prize ? '#f8fff9' : '#fff')}; border: 2px dashed ${prize ? '#198754' : '#dee2e6'} !important;"
-                    onclick="openPrizeSelector(${i})">
-                    
-                    <span class="position-absolute badge rounded-pill bg-success" style="top: 6px; left: 6px; font-size: 11px; z-index: 5; padding: 2px 6px;">
+                    style="cursor: pointer; background-color: ${isNextPrize ? '#f8d7da' : (hasPassed ? '#d1e7dd' : (prize ? '#f8fff9' : '#fff'))}; border: 2px ${isNextPrize ? 'dashed #dc3545' : `dashed ${prize ? '#198754' : '#dee2e6'}`} !important;"
+                    onclick="openPrizeSelector(${slotIndex})">
+
+                    ${isNextPrize ? `
+                        <span class="position-absolute badge rounded-pill bg-danger" style="top: 6px; right: 6px; font-size: 12px; z-index: 5; padding: 2px 6px;">
+                            กำลัง
+                        </span>
+                    ` : ''}
+
+                    <span class="position-absolute badge rounded-pill ${isNextPrize ? 'bg-danger' : 'bg-success'}" style="top: 6px; left: 6px; font-size: 11px; z-index: 5; padding: 2px 6px;">
                         #${i}
                     </span>
 

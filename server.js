@@ -95,6 +95,10 @@ app.get('/setup_sponsors', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin', 'setup_sponsors.html'));
 })
 
+app.get('/game_history', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin', 'game_history.html'));
+})
+
 app.get('/all_game', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin', 'all_game.html'));
 })
@@ -416,7 +420,13 @@ app.delete('/api/prize-orders', (req, res) => {
 
 // API สำหรับดึงข้อมูล sponsors ที่ status = 'no'
 app.get('/api/sponsors/inactive', (req, res) => {
-    const sql = "SELECT * FROM game_db.sponsors WHERE status = 'on'";
+    // ใช้ LEFT JOIN เพื่อดึงข้อมูล sponsors และ quantity จาก sponsors_stock มาด้วย
+    const sql = `
+        SELECT s.*, st.quantity 
+        FROM game_db.sponsors s
+        LEFT JOIN game_db.sponsors_stock st ON s.id = st.sponsor_id
+        WHERE s.status = 'on'
+    `;
     
     db.query(sql, (err, results) => {
         if (err) {
@@ -523,6 +533,61 @@ app.get('/api/game-history/count', (req, res) => {
     });
 });
 
+app.get('/api/game-history/data', (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10; // แสดงหน้าละ 10 รายการ
+    const offset = (page - 1) * limit;
+
+    // 1. นับจำนวนรายการทั้งหมดในตาราง
+    const countSql = `SELECT COUNT(*) AS total FROM game_history`;
+    db.query(countSql, (err, countResult) => {
+        if (err) {
+            console.error('Error counting history:', err);
+            return res.status(500).json({ success: false, message: 'Database error' });
+        }
+
+        const totalItems = countResult[0].total;
+        const totalPages = Math.ceil(totalItems / limit) || 1;
+
+        // 2. ดึงข้อมูลเฉพาะ 10 รายการตามหน้าที่เลือก
+        const sql = `SELECT * FROM game_history ORDER BY id DESC LIMIT ? OFFSET ?`;
+        
+        // ใช้ array ส่งค่าตัวเลขเข้าไปใน query เพื่อความปลอดภัย (SQL Injection Prevention)
+        db.query(sql, [limit, offset], (err, results) => {
+            if (err) {
+                console.error('Error fetching history:', err);
+                return res.status(500).json({ success: false, message: 'Database error' });
+            }
+
+            res.json({
+                success: true,
+                data: results,
+                pagination: {
+                    currentPage: page,
+                    totalPages: totalPages,
+                    totalItems: totalItems
+                }
+            });
+        });
+    });
+});
+
+app.get('/api/game-history/export', (req, res) => {
+    const sql = `
+        SELECT id, player_name, prize_name, special_prize, datetime
+        FROM game_history
+        ORDER BY id DESC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error('Error exporting game history:', err);
+            return res.status(500).json({ success: false, message: 'ไม่สามารถส่งออกประวัติการเล่นได้' });
+        }
+
+        res.json({ success: true, data: results });
+    });
+});
 
 
 app.use((err, req, res, next) => {

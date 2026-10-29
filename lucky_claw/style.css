@@ -50,15 +50,15 @@
       }
 
       /* ---------- background arcade room ---------- */
-     #room {
-  position: absolute;
-  inset: 0;
-  /* เปลี่ยนจาก radial-gradient เป็นรูปภาพ */
-  background: url('BG.jpg') no-repeat center center / cover !important;
-}
-     #floor {
-  display: none !important; /* ซ่อนเลเยอร์พื้นเพื่อไม่ให้บังรูป BG.jpg ด้านล่าง */
-}
+      #room {
+        position: absolute;
+        inset: 0;
+        /* เปลี่ยนจาก radial-gradient เป็นรูปภาพ */
+        background: url('BG.jpg') no-repeat center center / cover !important;
+      }
+          #floor {
+        display: none !important; /* ซ่อนเลเยอร์พื้นเพื่อไม่ให้บังรูป BG.jpg ด้านล่าง */
+      }
 
       /* ---------- HUD top left ---------- */
       #hud-left {
