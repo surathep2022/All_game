@@ -123,20 +123,28 @@
 
               if (result.success) {
                   // แสดงแจ้งเตือนสำเร็จ (เลือกใช้ SweetAlert2 หรือ alert ธรรมดาก็ได้ครับ)
-                  alert("บันทึกข้อมูลลง MySQL เรียบร้อยแล้ว!");
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกข้อมูลสำเร็จแล้ว!',
+                    text: 'เพิ่มของรางวัลเรียบร้อย!',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#198754'
+                }).then(() => {              
+                    // ซ่อน Modal
+                    const modalElement = document.getElementById("addProductModal");
+                    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) modalInstance.hide();
 
-                  // ซ่อน Modal
-                  const modalElement = document.getElementById("addProductModal");
-                  const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                  if (modalInstance) modalInstance.hide();
+                    // ล้างฟอร์ม
+                    this.reset();
+                    const preview = document.getElementById("imagePreview");
+                    if (preview) preview.style.display = "none";
 
-                  // ล้างฟอร์ม
-                  this.reset();
-                  const preview = document.getElementById("imagePreview");
-                  if (preview) preview.style.display = "none";
+                    // รีเฟรชหน้าเว็บใหม่ทันทีเพื่อให้แสดงข้อมูลล่าสุด
+                    location.reload();
+                });
 
-                  // รีเฟรชหน้าเว็บใหม่ทันทีเพื่อให้แสดงข้อมูลล่าสุด
-                  location.reload();
+                 
               } else {
                 alert("เกิดข้อผิดพลาด: " + result.message);
               }
@@ -172,9 +180,15 @@ async function loadActivePrizes() {
                 return;
             }
 
-            // วนลูปสร้าง Card ตามจำนวนข้อมูลที่ดึงมาจาก MySQL
+            // 🔄 เรียงลำดับ: ให้สถานะ 'on' ขึ้นมาอยู่ด้านบนก่อน ที่เหลืออยู่ด้านล่าง
+            result.data.sort((a, b) => {
+                if (a.status === 'on' && b.status !== 'on') return -1; // a มาก่อน b
+                if (a.status !== 'on' && b.status === 'on') return 1;  // b มาก่อน a
+                return 0; // คงลำดับเดิมถ้าสถานะเหมือนกัน
+            });
+
+            // วนลูปสร้าง Card ตามจำนวนข้อมูลที่ดึงมาจาก MySQL (ที่จัดเรียงแล้ว)
             result.data.forEach(item => {
-                // เช็คสถานะเพื่อเปิดสวิตช์ทิ้งไว้ (เพราะดึงมาเฉพาะ on อยู่แล้ว)
                 const isChecked = item.status === 'on' ? 'checked' : '';
 
                 const col = document.createElement('div');
@@ -202,21 +216,21 @@ async function loadActivePrizes() {
                                      style="width: 100px; height: 100px; object-fit: cover; border: 1px solid #f0f0f0;">
                             </div>
                             
-                          <!-- รหัสสินค้า -->
-                          <div class="mb-1">
+                            <!-- รหัสสินค้า -->
+                            <div class="mb-1">
                               <span class="badge bg-light text-secondary px-2 py-1" style="font-size: 14px; letter-spacing: 0.5px;">
                                   รหัสของรางวัล : ${item.product_code}
                               </span>
-                          </div>
+                            </div>
 
-                          <!-- ชื่อสินค้า (ปรับให้มีพื้นหลังเขียวอ่อน ตัวหนังสือสีเขียวเข้ม สะอาดตา) -->
-                          <div class="w-100 text-truncate">
-                              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 w-90 text-truncate" 
-                                    style="font-family: 'Google Sans', sans-serif; font-size: 14px; font-weight: 500;" 
-                                    title="${item.product_name}">
-                                  ชื่อของรางวัล : ${item.product_name}
-                              </span>
-                          </div>
+                            <!-- ชื่อสินค้า -->
+                            <div class="w-100 text-truncate">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 w-90 text-truncate" 
+                                      style="font-family: 'Google Sans', sans-serif; font-size: 14px; font-weight: 500;" 
+                                      title="${item.product_name}">
+                                    ชื่อของรางวัล : ${item.product_name}
+                                </span>
+                            </div>
 
                         </div>
 
@@ -446,9 +460,9 @@ async function deletePrize(id) {
                         font-family: &quot;Google Sans&quot;, sans-serif;
                         font-size: 13px;
                       "
-                      title="ทองคำแท่ง 1 บาท"
+                      title="แก้วน้ำปาร์ตี้"
                     >
-                      ทองคำแท่ง 1 บาท
+                      แก้วน้ำปาร์ตี้
                     </h6>
                   </div>
 
@@ -539,7 +553,7 @@ async function deletePrize(id) {
                         class="form-control"
                         id="productName"
                         name="productName"
-                        placeholder="กรอกชื่อของรางวัล เช่น ทองคำ, iPhone"
+                        placeholder="ชื่อของรางวัล เช่น แก้วน้ำปาร์ตี้ , กล่องข้าว"
                         required
                       />
                     </div>

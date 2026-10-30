@@ -183,25 +183,52 @@ app.put('/api/prizes/status', (req, res) => {
     });
 });
 
-// 6. API สำหรับลบของรางวัลตาม ID
+
+// 6. API สำหรับลบของรางวัลตาม ID (พร้อมลบไฟล์รูปภาพออกจาก Server)
 app.delete('/api/prizes/:id', (req, res) => {
     const prizeId = req.params.id;
 
-    const sql = 'DELETE FROM prizes WHERE id = ?';
-    db.query(sql, [prizeId], (err, result) => {
+    // 1. ค้นหา path รูปภาพของรางวัลก่อนลบข้อมูลจากตาราง
+    const selectSql = 'SELECT image_path FROM prizes WHERE id = ?';
+    db.query(selectSql, [prizeId], (err, results) => {
         if (err) {
             console.error('MySQL Error:', err);
-            return res.status(500).json({ success: false, message: 'ไม่สามารถลบข้อมูลได้' });
+            return res.status(500).json({ success: false, message: 'ไม่สามารถค้นหาข้อมูลของรางวัลได้' });
         }
 
-        if (result.affectedRows === 0) {
+        if (results.length === 0) {
             return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลของรางวัลที่ต้องการลบ' });
         }
 
-        res.json({ success: true, message: 'ลบข้อมูลสำเร็จ' });
+        const imagePath = results[0].image_path; // เช่น /img/prize-1234.jpg
+
+        // 2. สั่งลบข้อมูลออกจากตาราง prizes ใน MySQL
+        const deleteSql = 'DELETE FROM prizes WHERE id = ?';
+        db.query(deleteSql, [prizeId], (deleteErr, result) => {
+            if (deleteErr) {
+                console.error('MySQL Error:', deleteErr);
+                return res.status(500).json({ success: false, message: 'ไม่สามารถลบข้อมูลได้' });
+            }
+
+            // 3. ลบไฟล์รูปภาพจริงออกจากโฟลเดอร์ admin/img (ถ้ามีไฟล์อยู่)
+            if (imagePath) {
+                // แปลง path ให้เป็น path จริงในระบบ เช่น C:\All_Game\admin\img\prize-1234.jpg
+                const filename = path.basename(imagePath);
+                const fullPath = path.join(imgDir, filename);
+
+                fs.unlink(fullPath, (unlinkErr) => {
+                    if (unlinkErr && unlinkErr.code !== 'ENOENT') {
+                       // console.error('ไม่สามารถลบไฟล์รูปภาพได้:', unlinkErr);
+                    } else {
+                       // console.log('🗑️ ลบไฟล์รูปภาพสำเร็จ:', filename);
+                    }
+                });
+            }
+
+            res.json({ success: true, message: 'ลบข้อมูลและรูปภาพสำเร็จ' });
+        });
     });
 });
-
 
 
 // ================= SPONSORS API ENDPOINTS =================
