@@ -1,3 +1,4 @@
+//require('dotenv').config(); // ต้องอยู่บรรทัดบนสุดของ server.js
 const express = require('express');
 const path = require('path');
 const mysql = require('mysql2');
@@ -7,7 +8,7 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
-// 1. ตั้งค่าการเชื่อมต่อ MySQL Workbench
+//1. ตั้งค่าการเชื่อมต่อ MySQL Workbench
 const db = mysql.createPool({
     host: 'localhost',
     user: 'root',         // ใส่ Username ของ MySQL คุณ
@@ -17,6 +18,8 @@ const db = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
+
+
 
 // ตรวจสอบโฟลเดอร์ admin/img ถ้ายังไม่มีให้สร้างขึ้นมาอัตโนมัติ
 const imgDir = path.join(__dirname, 'admin', 'img');
@@ -623,10 +626,26 @@ app.use((err, req, res, next) => {
 
 
 
+// --- เพิ่มโค้ดทดสอบการเชื่อมต่อตรงนี้ ---
+db.getConnection((err, connection) => {
+    if (err) {
+        console.error('❌ [MySQL Error] ไม่สามารถเชื่อมต่อฐานข้อมูลได้:', err.message);
+        if (err.code === 'ER_BAD_DB_ERROR') {
+            console.error('💡 คำแนะนำ: ยังไม่ได้สร้างฐานข้อมูลชื่อ "game_db" ใน MySQL Workbench');
+        } else if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+            console.error('💡 คำแนะนำ: Username หรือ Password ของ MySQL ไม่ถูกต้อง');
+        }
+    } else {
+        console.log('✅ [MySQL Success] เชื่อมต่อฐานข้อมูล "game_db" สำเร็จเรียบร้อย!');
+        connection.release(); // คืน Connection กลับสู่ Pool ทันที
+    }
+});
+// ------------------------------------
+
 app.listen(PORT, () => {
     console.log(`
     =================================
-         🎮 GAME SERVER
+          🎮 GAME SERVER
     =================================`);
     console.log(`Server is running at http://localhost:${PORT}`);
 });
