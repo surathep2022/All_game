@@ -589,6 +589,26 @@ app.get('/api/game-history/export', (req, res) => {
     });
 });
 
+app.delete('/api/game-history/clear', (req, res) => {
+    // ใช้ TRUNCATE เพื่อลบข้อมูลทั้งหมดและรีเซ็ตค่า Auto Increment ID (หรือใช้ DELETE FROM game_history ได้เช่นกัน)
+    const sql = `TRUNCATE TABLE game_history`;
+    
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.error('MySQL Error:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'ไม่สามารถลบข้อมูลในฐานข้อมูลได้' 
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'ลบประวัติทั้งหมดเรียบร้อยแล้ว' 
+        });
+    });
+});
+
 
 app.use((err, req, res, next) => {
     console.error('Request Error:', err);

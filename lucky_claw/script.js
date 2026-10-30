@@ -166,7 +166,7 @@
                         status: item.status
                     }));
 
-                    console.log("รายการผู้สนับสนุนที่แปลงแล้ว:", availableSponsorsList);
+                    //console.log("รายการผู้สนับสนุนที่แปลงแล้ว:", availableSponsorsList);
                     
                     // นำตัวแปร availableSponsorsList ไปใช้งานต่อ เช่น แสดงผลบนหน้าจอ
                     return availableSponsorsList;
@@ -190,14 +190,21 @@
                       code: item.sponsor_code,                                   
                       quantity: Number(item.quantity)
                   }));
+
               } else {
                   throw new Error(result.message || 'ไม่สามารถโหลดข้อมูลสัดส่วนผู้สนับสนุนได้');
               }
+
           } catch (error) {
               console.error('เกิดข้อผิดพลาดในการเชื่อมต่อ:', error);
               return [];
           }
         }
+
+        // sponsors_stock().then(stockList => {
+        //     console.log("ข้อมูลสต็อกที่ได้:", stockList);           
+           
+        // });
 
       const sponsorDataReady = Promise.all([
         loadsponsorsFromDatabase(),

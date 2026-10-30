@@ -99,30 +99,30 @@
           if (result.success && result.data && result.data.length > 0) {
             const { currentPage, totalPages, totalItems } = result.pagination;
 
-            $.each(result.data, function(index, item) {
-            // 1. คำนวณเลขลำดับให้เรียงจากมากไปน้อย
-            let runningNumber = totalItems - ((currentPage - 1) * 10) - index;
+            $.each(result.data, function (index, item) {
+              // 1. คำนวณเลขลำดับให้เรียงจากมากไปน้อย
+              let runningNumber = totalItems - (currentPage - 1) * 10 - index;
 
-            // 2. เช็คว่าเป็นแถวแรกสุดของหน้าแรกหรือไม่ (รายการล่าสุด)
-            let isLatestRow = (currentPage === 1 && index === 0);
-            
-            // กำหนดสีพื้นหลังและสีตัวอักษรของช่องลำดับ (<td>)
-           let tdStyle = isLatestRow 
-                ? 'background-color: #d1e7dd; color: #0f5132; font-weight: bold; border-color: #badbcc;' 
-                : ''; // ช่องปกติ (โทนสีเขียวพาสเทล สบายตา)
+              // 2. เช็คว่าเป็นแถวแรกสุดของหน้าแรกหรือไม่ (รายการล่าสุด)
+              let isLatestRow = currentPage === 1 && index === 0;
 
-            let rowHtml = `
+              // กำหนดสีพื้นหลังและสีตัวอักษรของช่องลำดับ (<td>)
+              let tdStyle = isLatestRow
+                ? "background-color: #d1e7dd; color: #0f5132; font-weight: bold; border-color: #badbcc;"
+                : ""; // ช่องปกติ (โทนสีเขียวพาสเทล สบายตา)
+
+              let rowHtml = `
                 <tr>
                     <!-- ใส่สไตล์ช่อง td สำหรับรายการล่าสุด -->
-                    <td class="text-center align-middle ${isLatestRow ? 'border border-success-subtle' : ''}" style="${tdStyle}">${runningNumber}</td>
-                    <td class="text-center align-middle ${isLatestRow ? 'border border-success-subtle' : ''}" style="${tdStyle}">${item.player_name || '-'}</td>
-                    <td class="text-center align-middle ${isLatestRow ? 'border border-success-subtle' : ''}" style="${tdStyle}">${item.prize_name || '-'}</span></td>
-                    <td class="text-center align-middle ${isLatestRow ? 'border border-success-subtle' : ''}" style="${tdStyle}">${item.special_prize && item.special_prize !== '-' ? `${item.special_prize}` : '-'}</td>
-                    <td class="text-center text-muted small ${isLatestRow ? 'border border-success-subtle' : ''}" style="${tdStyle}">${item.datetime || '-'}</td>
+                    <td class="text-center align-middle ${isLatestRow ? "border border-success-subtle" : ""}" style="${tdStyle}">${runningNumber}</td>
+                    <td class="text-center align-middle ${isLatestRow ? "border border-success-subtle" : ""}" style="${tdStyle}">${item.player_name || "-"}</td>
+                    <td class="text-center align-middle ${isLatestRow ? "border border-success-subtle" : ""}" style="${tdStyle}">${item.prize_name || "-"}</span></td>
+                    <td class="text-center align-middle ${isLatestRow ? "border border-success-subtle" : ""}" style="${tdStyle}">${item.special_prize && item.special_prize !== "-" ? `${item.special_prize}` : "-"}</td>
+                    <td class="text-center text-muted small ${isLatestRow ? "border border-success-subtle" : ""}" style="${tdStyle}">${item.datetime || "-"}</td>
                 </tr>
             `;
-            $tbody.append(rowHtml);
-        });
+              $tbody.append(rowHtml);
+            });
 
             // แสดงข้อความสรุปข้อมูล
             let startItem = (currentPage - 1) * 10 + 1;
@@ -182,8 +182,14 @@
             cache: "no-store",
           });
           const result = await response.json();
-          if (!response.ok || !result.success || !Number.isFinite(Number(result.total))) {
-            throw new Error(result.message || "ไม่สามารถตรวจสอบจำนวนประวัติได้");
+          if (
+            !response.ok ||
+            !result.success ||
+            !Number.isFinite(Number(result.total))
+          ) {
+            throw new Error(
+              result.message || "ไม่สามารถตรวจสอบจำนวนประวัติได้",
+            );
           }
 
           const latestCount = Number(result.total);
@@ -204,6 +210,58 @@
         renderGameHistoryTable(page);
       }
 
+      async function clearData() {
+        const confirmation = await Swal.fire({
+            title: 'ต้องการลบข้อมูลหรือไม่?',
+            text: "ข้อมูลทั้งหมด รวมถึงรอบจับรางวัลสปอนเซอร์ และประวัติการเล่นจะถูกลบ ไม่สามารถกู้คืนได้!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545', // สีแดงปุ่มยืนยัน
+            cancelButtonColor: '#6c757d',  // สีเทาปุ่มยกเลิก
+            confirmButtonText: 'ใช่, ลบข้อมูลทั้งหมด!',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (!confirmation.isConfirmed) return;
+
+        try {
+          await firebase.database().ref().remove();
+        } catch (error) {
+          console.error('ไม่สามารถล้างข้อมูลใน Firebase ได้:', error);
+          await Swal.fire(
+            'ล้างข้อมูลไม่สำเร็จ',
+            error.message || 'ไม่สามารถล้างข้อมูลใน Firebase ได้',
+            'error',
+          );
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/game-history/clear', {
+            method: 'DELETE',
+          });
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(result.message || 'ไม่สามารถลบประวัติการเล่นได้');
+          }
+        } catch (error) {
+          console.error('ไม่สามารถล้างประวัติการเล่นได้:', error);
+          await Swal.fire(
+            'ล้างข้อมูลไม่ครบ',
+            `ล้าง Firebase แล้ว แต่ลบประวัติการเล่นไม่สำเร็จ: ${error.message || 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้'}`,
+            'error',
+          );
+          return;
+        }
+
+        await Swal.fire(
+          'ลบสำเร็จ!',
+          'ล้างข้อมูลทั้งหมดใน Firebase และประวัติการเล่นเรียบร้อยแล้ว',
+          'success',
+        );
+        location.reload();
+      }
+
       async function exportTableToExcel() {
         const exportButton = document.querySelector(
           'button[onclick="exportTableToExcel()"]',
@@ -214,7 +272,9 @@
           const response = await fetch("/api/game-history/export");
           const result = await response.json();
           if (!response.ok || !result.success || !Array.isArray(result.data)) {
-            throw new Error(result.message || "ไม่สามารถดึงข้อมูลประวัติทั้งหมดได้");
+            throw new Error(
+              result.message || "ไม่สามารถดึงข้อมูลประวัติทั้งหมดได้",
+            );
           }
 
           const headers = [
@@ -254,8 +314,6 @@
         renderGameHistoryTable(1);
         window.setInterval(refreshHistoryTableWhenChanged, 2000);
       });
-
-      
     </script>
   </head>
   <body>
@@ -272,67 +330,81 @@
           <div id="includedTopbar"></div>
           <!-- End of Topbar -->
 
-     
-
-          <div class="container-fluid px-4">  
+          <div class="container-fluid px-4">
             <!-- แถวสำหรับแสดงการ์ด (กำหนด id และให้แสดง 6 รายการต่อแถวในจอใหญ่ด้วย col-lg-2) -->
 
             <div class="row g-3">
+              <div
+                class="d-flex justify-content-between align-items-center mb-3"
+              >
+                <!-- หัวข้อหัวตาราง (อยู่ฝั่งซ้าย) -->
+                <h3 class="fw-bold text-dark mb-1" style="font-size: 24px">
+                  <i class="bi bi-clock text-success me-2"></i>
+                  ประวัติการรับของรางวัล
+                </h3>
 
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3 class="fw-bold text-gay mb-1" style="font-size: 24px">
-                          <i class="bi bi-clock text-success me-2"></i>
-                          ประวัติการรับของรางวัล
-                        </h3>
-                <!-- ปุ่ม Export Excel -->
-                    <button type="button" class="btn btn-success btn-sm px-3" onclick="exportTableToExcel()">
-                        <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
-                    </button>
-              </div>
-          
-                <div
-                  class="table-responsive shadow-sm overflow-hidden bg-white p-2"
-                >
-                  <table
-                    class="table table-striped table-hover mb-0"
-                    id="gameHistoryTable"
+                <!-- กลุ่มปุ่มทางด้านขวา (จัดให้อยู่ชิดกันด้วย d-flex และ gap-2) -->
+                <div class="d-flex gap-2">
+                  <!-- ปุ่มลบประวัติ (สีแดง) -->
+                  <button
+                    type="button"
+                    class="btn btn-danger px-3 shadow-sm"
+                    onclick="clearData()"
                   >
-                    <thead class="table-dark">
-                      <tr>
-                        <th scope="col" class="text-center" style="width: 80px">
-                          ลำดับ
-                        </th>
-                        <th scope="col" class="text-center">ชื่อผู้เล่น</th>
-                        <th scope="col" class="text-center">รางวัลที่ได้รับ</th>
-                        <th scope="col" class="text-center">รางวัลพิเศษ</th>
-                        <th scope="col" class="text-center">
-                          วัน/เดือน/ปี เวลา
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody id="gameHistoryTableBody">
-                      <!-- ข้อมูลจะถูกแทรกเข้ามาตรงนี้ด้วย JavaScript -->
-                      <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
-                          กำลังโหลดข้อมูล...
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                    <i class="bi bi-trash3 me-1"></i> ลบประวัติ
+                  </button>
 
-                <!-- ส่วนสำหรับแสดงปุ่มเปลี่ยนหน้า -->
-                <nav
-                  class="d-flex justify-content-between align-items-center mt-3 px-2"
+                  <!-- ปุ่ม Export Excel (สีเขียว) -->
+                  <button
+                    type="button"
+                    class="btn btn-success px-3 shadow-sm"
+                    onclick="exportTableToExcel()"
+                  >
+                    <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+                  </button>
+                </div>
+              </div>
+
+              <div
+                class="table-responsive shadow-sm overflow-hidden bg-white p-2"
+              >
+                <table
+                  class="table table-striped table-hover mb-0"
+                  id="gameHistoryTable"
                 >
-                  <div id="tableInfo" class="text-muted small">
-                    กำลังโหลดข้อมูล...
-                  </div>
-                  <ul class="pagination mb-0" id="paginationContainer">
-                    <!-- ปุ่ม Pagination จะถูกสร้างอัตโนมัติ -->
-                  </ul>
-                </nav>
-         
+                  <thead class="table-dark">
+                    <tr>
+                      <th scope="col" class="text-center" style="width: 80px">
+                        ลำดับ
+                      </th>
+                      <th scope="col" class="text-center">ชื่อผู้เล่น</th>
+                      <th scope="col" class="text-center">รางวัลที่ได้รับ</th>
+                      <th scope="col" class="text-center">รางวัลพิเศษ</th>
+                      <th scope="col" class="text-center">วัน/เดือน/ปี เวลา</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gameHistoryTableBody">
+                    <!-- ข้อมูลจะถูกแทรกเข้ามาตรงนี้ด้วย JavaScript -->
+                    <tr>
+                      <td colspan="5" class="text-center text-muted py-4">
+                        กำลังโหลดข้อมูล...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- ส่วนสำหรับแสดงปุ่มเปลี่ยนหน้า -->
+              <nav
+                class="d-flex justify-content-between align-items-center mt-3 px-2"
+              >
+                <div id="tableInfo" class="text-muted small">
+                  กำลังโหลดข้อมูล...
+                </div>
+                <ul class="pagination mb-0" id="paginationContainer">
+                  <!-- ปุ่ม Pagination จะถูกสร้างอัตโนมัติ -->
+                </ul>
+              </nav>
             </div>
           </div>
 
