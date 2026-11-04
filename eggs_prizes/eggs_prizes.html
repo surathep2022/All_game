@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      html {
+        scroll-padding-top: env(safe-area-inset-top, 0px);
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font:
+          14px -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: #fff;
+        color: #000;
+      }
+      img {
+        max-width: 100%;
+      }
+      [hidden]:not([hidden="until-found" i]) {
+        display: none !important;
+      }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  </head>
+  <body>
+    <title>ตักไข่ ลุ้นรางวัล</title>
+    <meta name="claude:viewport-fit-sides" content="cover" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;700;800&family=Sarabun:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Layout: one 1080x1920 portrait canvas scaled to fit and centred on a dark ground.
+   Scene: top-down egg tub on a night-market stall, paper lanterns overhead. Single dark look by design. */
+      :root {
+        --ground: #0d0819;
+        --plum: #2a1448;
+        --lantern: #e23d2d;
+        --brass: #d9a441;
+        --water: #1f9a9c;
+        --egg: #f6e7c8;
+        color-scheme: dark;
+      }
+      html {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        margin: 0;
+        box-sizing: border-box;
+        background: var(--ground);
+        color: var(--egg);
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+        font-family: "Sarabun", "Noto Sans Thai", Tahoma, sans-serif;
+      }
+      #stage {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+      #game {
+        display: block;
+        background: #150d2b;
+        outline: none;
+        touch-action: none;
+        border-radius: 6px;
+        box-shadow:
+          0 0 0 2px #3a2565,
+          0 24px 80px rgba(0, 0, 0, 0.6);
+      }
+      #game:focus-visible {
+        box-shadow:
+          0 0 0 3px var(--brass),
+          0 24px 80px rgba(0, 0, 0, 0.6);
+      }
+    </style>
+
+    <div id="stage">
+      <canvas
+        id="game"
+        width="1080"
+        height="1920"
+        tabindex="0"
+        aria-label="เกมตักไข่ลุ้นรางวัล กด Spacebar เพื่อเริ่ม ใช้ลูกศรซ้ายขวาเลื่อนไม้ และกด Spacebar เพื่อตักไข่"
+      ></canvas>
+    </div>    
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script type="module" src="/eggs_prizes/script.js"></script>
+
+  </body>
+</html>

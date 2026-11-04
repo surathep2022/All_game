@@ -77,6 +77,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'admin'));
 app.use(express.static(path.join(__dirname, 'admin')));
 app.use('/lucky_claw', express.static(path.join(__dirname, 'lucky_claw')));
+app.use('/eggs_prizes', express.static(path.join(__dirname, 'eggs_prizes')));
 app.use('/img_sponsors', express.static(sponsorUploadsDir));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -111,6 +112,10 @@ app.get('/all_game', (req, res) => {
 app.get('/lucky_claw', (req, res) => {
     // ปรับ Path ให้ถอด 'admin' ออก และชี้ไปที่โฟลเดอร์ lucky_claw โดยตรง
     res.sendFile(path.join(__dirname, 'lucky_claw', 'lucky_claw.html'));
+});
+
+app.get('/eggs_prizes', (req, res) => {
+    res.sendFile(path.join(__dirname, 'eggs_prizes', 'eggs_prizes.html'));
 });
 
 
