@@ -211,9 +211,7 @@ async function loadActivePrizes() {
                             
                             <!-- รูปภาพสินค้า -->
                             <div class="position-relative mb-2">
-                                <img src="${item.image_path}" alt="${item.product_name}" 
-                                     class="rounded-3 shadow-sm" 
-                                     style="width: 100px; height: 100px; object-fit: cover; border: 1px solid #f0f0f0;">
+                                <img src="${item.image_path}" alt="${item.product_name}" style="width: 200px; height: 200px;">
                             </div>
                             
                             <!-- รหัสสินค้า -->
@@ -367,35 +365,19 @@ async function deletePrize(id) {
           <!-- End of Topbar -->
 
           <!-- Begin Page Content -->
-          <div class="container-fluid px-4">
-            <!-- การ์ดสำหรับกดคลิกเพื่อเปิด Modal -->
-            <div
-              class="card shadow-sm"
-              style="
-                max-width: 320px;
-                cursor: pointer;
-                transition: transform 0.2s;
-              "
-              data-bs-toggle="modal"
-              data-bs-target="#addProductModal"
-              onclick="generateProductCode()"
-            >
-              <div class="card-body text-center py-4">
-                <i
-                  class="bi bi-database-add mb-2"
-                  style="font-size: 48px; color: #6f42c1"
-                ></i>
-                <h5
-                  class="card-title mb-0 fw-bold"
-                  style="
-                    font-family: &quot;Google Sans&quot;, sans-serif;
-                    color: #333;
-                  "
-                >
-                  เพิ่มของรางวัล
-                </h5>
-              </div>
-            </div>
+          <div class="container-fluid px-4 d-flex justify-content-end">
+              <!-- 🟢 ปุ่มสีเขียวสำหรับกดเปิด Modal เพิ่มของรางวัล -->
+              <button 
+                  type="button" 
+                  class="btn btn-success d-flex align-items-center gap-2 px-4 py-2 shadow-sm rounded-3"
+                  data-bs-toggle="modal"
+                  data-bs-target="#addProductModal"
+                  onclick="generateProductCode()"
+                  style="font-family: 'Google Sans', sans-serif; font-weight: 500;"
+              >
+                  <i class="bi bi-database-add" style="font-size: 20px;"></i>
+                  <span>เพิ่มของรางวัล</span>
+              </button>
           </div>
 
           <div class="container-fluid px-4">
@@ -406,84 +388,7 @@ async function deletePrize(id) {
             <!-- แถวสำหรับแสดงการ์ด 6 รายการต่อแถวในหน้าจอใหญ่ -->
             <div class="row g-3" id="prizeCardContainer">
               <!-- ตัวอย่างการ์ดสินค้า -->
-              <div class="col-6 col-md-4 col-lg-2">
-                <div
-                  class="card shadow-sm position-relative h-100 border-0 rounded-4 overflow-hidden bg-white hover-shadow transition-all"
-                >
-                  <!-- 🔘 Switch เปิด-ปิด (ปรับขนาดพอดี ไม่ใหญ่จนบังรูปหรือล้นขอบ) -->
-                  <div
-                    class="position-absolute top-0 end-0 p-2"
-                    style="z-index: 10"
-                  >
-                    <div class="form-check form-switch m-0">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        role="switch"
-                        checked
-                        style="cursor: pointer; transform: scale(1.1)"
-                      />
-                    </div>
-                  </div>
-
-                  <!-- เนื้อหาข้างใน Card -->
-                  <div
-                    class="card-body text-center pt-4 px-2 pb-2 d-flex flex-column align-items-center"
-                  >
-                    <!-- กรอบรูปภาพทรงสี่เหลี่ยมจัตุรัสพอดีกับการ์ดขนาดเล็ก (แนะนำขนาด 100-120px) -->
-                    <div class="position-relative mb-2">
-                      <img
-                        src="https://via.placeholder.com/100"
-                        alt="Product"
-                        class="rounded-3 shadow-sm"
-                        style="
-                          width: 100px;
-                          height: 100px;
-                          object-fit: cover;
-                          border: 1px solid #f0f0f0;
-                        "
-                      />
-                    </div>
-
-                    <!-- รหัสสินค้า -->
-                    <span
-                      class="badge bg-light text-muted mb-1 px-2 py-1"
-                      style="font-size: 10px; letter-spacing: 0.5px"
-                    >
-                      #A9F21B
-                    </span>
-
-                    <!-- ชื่อสินค้า -->
-                    <h6
-                      class="card-title fw-bold text-dark mb-0 text-truncate w-100"
-                      style="
-                        font-family: &quot;Google Sans&quot;, sans-serif;
-                        font-size: 13px;
-                      "
-                      title="แก้วน้ำปาร์ตี้"
-                    >
-                      แก้วน้ำปาร์ตี้
-                    </h6>
-                  </div>
-
-                  <!-- ส่วนท้ายการ์ด (ปุ่มลบดีไซน์โค้งมน) -->
-                  <div
-                    class="card-footer bg-transparent border-0 text-center pb-3 pt-0 px-3"
-                  >
-                    <button
-                      class="btn btn-outline-danger w-100 py-1"
-                      style="
-                        font-size: 11px;
-                        border-radius: 8px;
-                        font-weight: 500;
-                      "
-                      onclick="deletePrize()"
-                    >
-                      <i class="bi bi-trash me-1"></i> ลบ
-                    </button>
-                  </div>
-                </div>
-              </div>
+             
             </div>
           </div>
 
@@ -581,8 +486,8 @@ async function deletePrize(id) {
                           alt="Preview"
                           style="
                             display: none;
-                            width: 100px;
-                            height: 100px;
+                            width: 200px;
+                            height: 200px;
                             object-fit: cover;
                             border-radius: 8px;
                             border: 1px solid #ddd;
