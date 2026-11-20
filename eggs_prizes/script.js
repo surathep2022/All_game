@@ -352,6 +352,16 @@ function getOrderedPrizeForTurn() {
         const ctx = cv.getContext("2d");
         cv.width = W;
         cv.height = H;
+        const backgroundImage = new Image();
+        backgroundImage.addEventListener("error", () => {
+            console.error("ไม่สามารถโหลดภาพพื้นหลังเกมได้:", backgroundImage.src);
+        });
+        backgroundImage.src = "/eggs_prizes/BG.jpg";
+        const sponsorImage = new Image();
+        sponsorImage.addEventListener("error", () => {
+            console.error("ไม่สามารถโหลดภาพผู้สนับสนุนได้:", sponsorImage.src);
+        });
+        sponsorImage.src = "/eggs_prizes/sponsors.png";
 
         /* ============ ตัวช่วย ============ */
         const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1104,128 +1114,13 @@ function getOrderedPrizeForTurn() {
         }
 
         /* ============ วาด: ฉากหลัง ============ */
-        const bokeh = Array.from({ length: 26 }, (_, i) => ({
-            x: Math.random() * W,
-            y: Math.random() * H,
-            r: 30 + Math.random() * 90,
-            a: 0.04 + Math.random() * 0.07,
-            ph: Math.random() * 6.28,
-            warm: i % 3 !== 0,
-        }));
-
-        const clothPattern = (() => {
-            const c = document.createElement("canvas");
-            c.width = c.height = 180;
-            const g = c.getContext("2d");
-            g.fillStyle = "rgba(226,61,45,.10)";
-            g.fillRect(0, 0, 90, 90);
-            g.fillRect(90, 90, 90, 90);
-            g.fillStyle = "rgba(255,255,255,.035)";
-            g.fillRect(90, 0, 90, 90);
-            g.fillRect(0, 90, 90, 90);
-            return ctx.createPattern(c, "repeat");
-        })();
-
-        function drawBackground(t) {
-            const g = ctx.createLinearGradient(0, 0, 0, H);
-            g.addColorStop(0, "#1b1038");
-            g.addColorStop(0.55, "#2a1448");
-            g.addColorStop(1, "#120a22");
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, W, H);
-            ctx.fillStyle = clothPattern;
-            ctx.fillRect(0, 0, W, H);
-            for (const b of bokeh) {
-                const a = b.a * (0.7 + 0.3 * Math.sin(t * 0.6 + b.ph));
-                const rg = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-                rg.addColorStop(
-                    0,
-                    b.warm ? `rgba(255,190,90,${a})` : `rgba(120,200,255,${a * 0.7})`,
-                );
-                rg.addColorStop(1, "rgba(0,0,0,0)");
-                ctx.fillStyle = rg;
-                ctx.fillRect(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2);
+        function drawBackground() {
+            if (backgroundImage.complete && backgroundImage.naturalWidth > 0) {
+                ctx.drawImage(backgroundImage, 0, 0, W, H);
+                return;
             }
-            const v = ctx.createRadialGradient(
-                W / 2,
-                H / 2,
-                500,
-                W / 2,
-                H / 2,
-                1250,
-            );
-            v.addColorStop(0, "rgba(0,0,0,0)");
-            v.addColorStop(1, "rgba(0,0,0,.55)");
-            ctx.fillStyle = v;
+            ctx.fillStyle = "#0d0819";
             ctx.fillRect(0, 0, W, H);
-        }
-
-        function drawLanterns(t) {
-            const xs = [90, 315, 540, 765, 990];
-            ctx.save();
-            ctx.strokeStyle = "#47306e";
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(-20, 20);
-            ctx.lineTo(xs[0], 24);
-            for (let i = 0; i < xs.length - 1; i++) {
-                ctx.quadraticCurveTo((xs[i] + xs[i + 1]) / 2, 58, xs[i + 1], 24);
-            }
-            ctx.lineTo(W + 20, 20);
-            ctx.stroke();
-            ctx.restore();
-
-            xs.forEach((x, i) => {
-                const lt = 30 + (i % 2) * 24;
-                const cy = lt + 14 + 48;
-                const ang = REDUCED ? 0 : Math.sin(t * 0.9 + i * 1.3) * 0.06;
-                ctx.save();
-                ctx.translate(x, 24);
-                ctx.rotate(ang);
-                ctx.translate(-x, -24);
-                const glow = ctx.createRadialGradient(x, cy, 10, x, cy, 140);
-                glow.addColorStop(0, "rgba(255,120,60,.38)");
-                glow.addColorStop(1, "rgba(255,120,60,0)");
-                ctx.fillStyle = glow;
-                ctx.fillRect(x - 150, cy - 150, 300, 300);
-                ctx.strokeStyle = "#47306e";
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(x, 24);
-                ctx.lineTo(x, lt);
-                ctx.stroke();
-                ctx.fillStyle = "#d9a441";
-                rr(ctx, x - 18, lt, 36, 14, 4);
-                ctx.fill();
-                const bg = ctx.createLinearGradient(x - 40, 0, x + 40, 0);
-                bg.addColorStop(0, "#9c1f17");
-                bg.addColorStop(0.5, "#f0503a");
-                bg.addColorStop(1, "#9c1f17");
-                ctx.fillStyle = bg;
-                ctx.beginPath();
-                ctx.ellipse(x, cy, 40, 48, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = "rgba(90,10,10,.5)";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.ellipse(x, cy, 22, 48, 0, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(x, cy - 48);
-                ctx.lineTo(x, cy + 48);
-                ctx.stroke();
-                ctx.fillStyle = "#d9a441";
-                rr(ctx, x - 18, cy + 44, 36, 14, 4);
-                ctx.fill();
-                ctx.strokeStyle = "#f0c25a";
-                ctx.lineWidth = 5;
-                ctx.lineCap = "round";
-                ctx.beginPath();
-                ctx.moveTo(x, cy + 58);
-                ctx.lineTo(x, cy + 84);
-                ctx.stroke();
-                ctx.restore();
-            });
         }
 
         function drawTitle() {
@@ -1562,8 +1457,7 @@ function getOrderedPrizeForTurn() {
         }
 
         function drawPlayScene() {
-            drawBackground(time);
-            drawLanterns(time);
+            drawBackground();
             drawTitle();
             drawTimer();
             drawTub(time);
@@ -1994,7 +1888,7 @@ function getOrderedPrizeForTurn() {
                     { stroke: "#1a0d33", sw: 14, alpha: a2 },
                 );
                 if (u > 3.2 && rv.resultReady) {
-                    cta("ตกลง", 1700, time);
+                    cta("ตกลง", rv.specialSponsor ? 1800 : 1700, time);
                 }
                 if (u > 0.8 && rv.specialSponsor) {
                     const sponsorName = rv.specialSponsor.sponsor_name || "";
@@ -2007,6 +1901,9 @@ function getOrderedPrizeForTurn() {
                         700,
                         "#fff3c4",
                     );
+                    if (sponsorImage.complete && sponsorImage.naturalWidth > 0) {
+                        ctx.drawImage(sponsorImage, 440, 1550, 200, 200);
+                    }
                 }
                 if (u > 0.8 && rv.saveError) {
                     text("บันทึกข้อมูลบางส่วนไม่สำเร็จ", 540, 1530, 30, 700, "#ffb9a8", {
